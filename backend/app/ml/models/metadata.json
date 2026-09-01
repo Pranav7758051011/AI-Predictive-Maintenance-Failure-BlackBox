@@ -1,0 +1,143 @@
+{
+  "model_version": "failure-model-v1.0",
+  "algorithm": "XGBoost Native Booster",
+  "features": [
+    "air_temp",
+    "process_temp",
+    "rotational_speed",
+    "torque",
+    "tool_wear",
+    "type_H",
+    "type_L",
+    "type_M",
+    "temperature_difference",
+    "power",
+    "overstrain"
+  ],
+  "failure_types": {
+    "0": "NO_FAILURE",
+    "1": "TWF",
+    "2": "HDF",
+    "3": "PWF",
+    "4": "OSF",
+    "5": "RNF"
+  },
+  "failure_probability_threshold": 0.5,
+  "dataset_info": {
+    "total_samples": 10000,
+    "train_samples": 8001,
+    "test_samples": 1999,
+    "normal_samples": 9661,
+    "failure_samples": 339,
+    "imbalance_ratio": "28.50:1"
+  },
+  "evaluation_metrics": {
+    "binary": {
+      "accuracy": 0.9775,
+      "precision": 0.6375,
+      "recall": 0.7612,
+      "f1_score": 0.6939,
+      "roc_auc": 0.967,
+      "confusion_matrix": {
+        "true_negative": 1903,
+        "false_positive": 29,
+        "false_negative": 16,
+        "true_positive": 51
+      }
+    },
+    "multiclass": {
+      "macro_precision": 0.7732,
+      "macro_recall": 0.7903,
+      "macro_f1": 0.7814,
+      "class_report": {
+        "NO_FAILURE": {
+          "precision": 0.9908,
+          "recall": 0.999,
+          "f1_score": 0.9948,
+          "support": 1932
+        },
+        "TWF": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "support": 17
+        },
+        "HDF": {
+          "precision": 0.9524,
+          "recall": 0.9524,
+          "f1_score": 0.9524,
+          "support": 21
+        },
+        "PWF": {
+          "precision": 0.9231,
+          "recall": 1.0,
+          "f1_score": 0.96,
+          "support": 12
+        },
+        "OSF": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1_score": 1.0,
+          "support": 17
+        },
+        "RNF": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1_score": 0.0,
+          "support": 0
+        }
+      },
+      "confusion_matrix": [
+        [
+          1930,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          17,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          12,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "trained_at": "2026-09-01T18:36:59.723220+00:00"
+}

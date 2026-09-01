@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F4F5F2;
+    color: #172126;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom industrial scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E8EBE7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #234B63;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E85D25;
+}
+
+/* Premium Industrial Card with Hover Lift & Accent Glow */
+.industrial-card {
+  position: relative;
+  background-color: #FFFFFF;
+  border: 1px solid #D5DAD7;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 20px rgba(23, 33, 38, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.industrial-card:hover {
+  border-color: #234B63;
+  box-shadow: 0 12px 30px -5px rgba(35, 75, 99, 0.12), 0 4px 12px -2px rgba(232, 93, 37, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Industrial Glossy Button Shimmer */
+.btn-industrial {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.btn-industrial::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    60deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 70%
+  );
+  transform: rotate(30deg) translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.btn-industrial:hover::after {
+  transform: rotate(30deg) translateX(100%);
+}
+
+/* Live Telemetry Pulse Ring */
+.pulse-indicator {
+  position: relative;
+}
+
+.pulse-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* Table Row Hover Highlight */
+.industrial-row {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.industrial-row:hover {
+  background-color: rgba(232, 235, 231, 0.6) !important;
+}
+
+/* Interactive Navigation Link Underline Effect */
+.nav-link-industrial {
+  position: relative;
+}
+
+.nav-link-industrial::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #E85D25;
+  transition: width 0.25s ease;
+}
+
+.nav-link-industrial:hover::after,
+.nav-link-industrial.active::after {
+  width: 100%;
+}
