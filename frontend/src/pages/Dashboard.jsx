@@ -11,6 +11,7 @@ import MachineSelector from '../components/MachineSelector';
 import HealthGauge from '../components/HealthGauge';
 import RiskBadge from '../components/RiskBadge';
 import { useSensorSimulation } from '../hooks/useSensorSimulation';
+import { useAuth } from '../context/AuthContext';
 import {
   FiBox,
   FiCheckCircle,
@@ -25,6 +26,7 @@ import {
 } from 'react-icons/fi';
 
 export default function Dashboard() {
+  const { canWrite } = useAuth();
   const {
     machines,
     activeMachine,
@@ -104,14 +106,20 @@ export default function Dashboard() {
                 <span>Flask ML Engine Connected</span>
               </div>
 
-              <button
-                onClick={() => triggerSimulation("failure")}
-                disabled={isSimulating || !activeMachineId}
-                className="btn-industrial inline-flex items-center gap-1.5 bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded shadow-sm hover:shadow-glow-orange transition disabled:opacity-50"
-              >
-                <FiPlay className={isSimulating ? 'animate-spin' : ''} />
-                <span>Inject Fault & Predict</span>
-              </button>
+              {canWrite ? (
+                <button
+                  onClick={() => triggerSimulation("failure")}
+                  disabled={isSimulating || !activeMachineId}
+                  className="btn-industrial inline-flex items-center gap-1.5 bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold uppercase tracking-wider px-3.5 py-2 rounded shadow-sm hover:shadow-glow-orange transition disabled:opacity-50"
+                >
+                  <FiPlay className={isSimulating ? 'animate-spin' : ''} />
+                  <span>Inject Fault & Predict</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold border border-slate-300">
+                  Client View (Read Only)
+                </span>
+              )}
             </div>
           </div>
 
@@ -126,13 +134,15 @@ export default function Dashboard() {
           </div>
 
           {/* Simulation Controls */}
-          <SimulationControls
-            simulationMode={simulationMode}
-            simulationStep={simulationStep}
-            isSimulating={isSimulating}
-            onTrigger={triggerSimulation}
-            onReset={resetSimulation}
-          />
+          {canWrite && (
+            <SimulationControls
+              simulationMode={simulationMode}
+              simulationStep={simulationStep}
+              isSimulating={isSimulating}
+              onTrigger={triggerSimulation}
+              onReset={resetSimulation}
+            />
+          )}
 
           {/* 3D Machine + Active Status Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

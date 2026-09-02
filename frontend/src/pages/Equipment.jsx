@@ -127,13 +127,17 @@ export default function Equipment() {
                 ))}
               </div>
 
-              {isAdmin && (
+              {canWrite ? (
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-steel-blue hover:bg-steel-blue-dark text-white text-xs font-bold transition shadow-sm hover:shadow-glow-blue"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-extrabold transition shadow-md hover:shadow-glow-orange"
                 >
-                  <FiPlus /> Add Machine
+                  <FiPlus className="text-base" /> Add Machine
                 </button>
+              ) : (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold border border-slate-300">
+                  Client View (Read Only)
+                </span>
               )}
 
               <button

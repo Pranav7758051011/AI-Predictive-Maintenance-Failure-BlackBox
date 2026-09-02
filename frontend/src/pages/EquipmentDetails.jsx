@@ -282,9 +282,10 @@ export default function EquipmentDetails() {
                         min="295"
                         max="325"
                         step="0.1"
+                        disabled={!canWrite}
                         value={processTemp}
                         onChange={(e) => setProcessTemp(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue"
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -298,9 +299,10 @@ export default function EquipmentDetails() {
                         min="10"
                         max="80"
                         step="0.5"
+                        disabled={!canWrite}
                         value={torque}
                         onChange={(e) => setTorque(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue"
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
 
@@ -314,14 +316,15 @@ export default function EquipmentDetails() {
                         min="0"
                         max="260"
                         step="1"
+                        disabled={!canWrite}
                         value={toolWear}
                         onChange={(e) => setToolWear(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-industrial-orange"
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-industrial-orange disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
 
-                  {canWrite && (
+                  {canWrite ? (
                     <button
                       type="submit"
                       disabled={predicting}
@@ -330,6 +333,10 @@ export default function EquipmentDetails() {
                       <FiPlay className={predicting ? 'animate-spin' : ''} />
                       <span>{predicting ? 'Evaluating ML Model...' : 'Ingest & Run Prediction'}</span>
                     </button>
+                  ) : (
+                    <div className="w-full mt-3 py-2 px-3 bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold rounded-lg text-center">
+                      Client View Mode: Telemetry & Ingestion is Read-Only
+                    </div>
                   )}
                 </form>
               </div>

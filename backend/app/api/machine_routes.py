@@ -110,10 +110,10 @@ def get_machine(id: str):
 
 @machine_bp.route("", methods=["POST"])
 @jwt_required()
-@role_required(UserRole.ADMIN)
+@role_required([UserRole.ADMIN, UserRole.ENGINEER])
 def create_machine():
     """
-    Create Machine (Admin Only)
+    Create Machine (Admin and Engineer)
     ---
     tags:
       - Machines
@@ -168,7 +168,7 @@ def create_machine():
       201:
         description: Machine created successfully
       403:
-        description: Forbidden (Admin only)
+        description: Forbidden (Admin and Engineer only)
       409:
         description: Serial number already exists
       422:
@@ -186,10 +186,10 @@ def create_machine():
 
 @machine_bp.route("/<id>", methods=["PUT"])
 @jwt_required()
-@role_required(UserRole.ADMIN)
+@role_required([UserRole.ADMIN, UserRole.ENGINEER])
 def update_machine(id: str):
     """
-    Update Machine (Admin Only)
+    Update Machine (Admin and Engineer)
     ---
     tags:
       - Machines
@@ -211,9 +211,6 @@ def update_machine(id: str):
             properties:
               name:
                 type: string
-              product_type:
-                type: string
-                enum: [L, M, H]
               location:
                 type: string
               status:
@@ -227,7 +224,7 @@ def update_machine(id: str):
       200:
         description: Machine updated successfully
       403:
-        description: Forbidden (Admin only)
+        description: Forbidden (Admin and Engineer only)
       404:
         description: Machine not found
       422:
@@ -245,14 +242,14 @@ def update_machine(id: str):
 
 @machine_bp.route("/<id>", methods=["DELETE"])
 @jwt_required()
-@role_required(UserRole.ADMIN)
+@role_required([UserRole.ADMIN, UserRole.ENGINEER])
 def delete_machine(id: str):
     """
-    Delete Machine (Admin Only)
+    Delete Machine (Admin and Engineer)
     ---
     tags:
       - Machines
-    summary: Remove an industrial machine record from system
+    summary: Remove machine from inventory and delete associated telemetry
     security:
       - BearerAuth: []
     parameters:
@@ -265,13 +262,65 @@ def delete_machine(id: str):
       200:
         description: Machine deleted successfully
       403:
-        description: Forbidden (Admin only)
+        description: Forbidden (Admin and Engineer only)
       404:
         description: Machine not found
     """
     machine_service.delete_machine(id)
     return success_response(
         data=None,
-        message=f"Machine with ID '{id}' was deleted successfully.",
+        message="Machine and associated telemetry deleted successfully.",
+        status_code=200
+    )
+
+@machine_bp.route("/<id>/assign", methods=["POST"])
+@jwt_required()
+@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+def assign_engineer(id: str):
+    """
+    Assign Engineer to Machine
+    ---
+    tags:
+      - Machines
+    summary: Assign a designated reliability engineer to a machine
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - engineer_id
+            properties:
+              engineer_id:
+                type: string
+    responses:
+      200:
+        description: Engineer assigned successfully
+      400:
+        description: User is not an engineer
+      403:
+        description: Forbidden
+      404:
+        description: Machine or engineer not found
+    """
+    payload = request.get_json() or {}
+    engineer_id = payload.get("engineer_id")
+    if not engineer_id:
+        from app.utils.response_helpers import error_response
+        return error_response("Field 'engineer_id' is required.", status_code=422)
+        
+    updated_machine = machine_service.assign_engineer(id, engineer_id)
+    return success_response(
+        data=machine_response_schema.dump(updated_machine),
+        message="Engineer assigned successfully.",
         status_code=200
     )

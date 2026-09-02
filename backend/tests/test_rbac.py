@@ -12,8 +12,8 @@ def test_admin_can_create_machine(client, admin_user):
     assert response.status_code == 201
     assert response.get_json()["success"] is True
 
-def test_engineer_cannot_create_machine(client, engineer_user):
-    """Test Engineer is forbidden from creating machines."""
+def test_engineer_can_create_machine(client, engineer_user):
+    """Test Engineer has authorization to create machines."""
     payload = {
         "serial_number": "ENG-CNC-001",
         "name": "Heavy Industrial CNC",
@@ -21,13 +21,11 @@ def test_engineer_cannot_create_machine(client, engineer_user):
         "location": "Sector A, Bay 2"
     }
     response = client.post("/api/machines", json=payload, headers=engineer_user["headers"])
-    assert response.status_code == 403
-    json_data = response.get_json()
-    assert json_data["success"] is False
-    assert json_data["error_code"] == "FORBIDDEN"
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
 def test_viewer_cannot_create_machine(client, viewer_user):
-    """Test Viewer is forbidden from creating machines."""
+    """Test Viewer / Client is forbidden from creating machines."""
     payload = {
         "serial_number": "VIEW-CNC-001",
         "name": "Heavy Industrial CNC",
@@ -64,16 +62,16 @@ def test_admin_can_delete_machine(client, admin_user):
     assert del_res.status_code == 200
     assert del_res.get_json()["success"] is True
 
-def test_engineer_cannot_delete_machine(client, admin_user, engineer_user):
-    """Test Engineer is forbidden from deleting a machine."""
+def test_viewer_cannot_delete_machine(client, admin_user, viewer_user):
+    """Test Viewer / Client is forbidden from deleting a machine."""
     create_res = client.post("/api/machines", json={
-        "serial_number": "ENG-NO-DEL-001",
+        "serial_number": "VIEW-NO-DEL-001",
         "name": "Protected Machine",
         "product_type": "M",
         "location": "Bay 9"
     }, headers=admin_user["headers"])
     machine_id = create_res.get_json()["data"]["id"]
 
-    del_res = client.delete(f"/api/machines/{machine_id}", headers=engineer_user["headers"])
+    del_res = client.delete(f"/api/machines/{machine_id}", headers=viewer_user["headers"])
     assert del_res.status_code == 403
     assert del_res.get_json()["error_code"] == "FORBIDDEN"
