@@ -36,7 +36,15 @@ class MachineService:
                 machine["assigned_engineer"] = None
         else:
             machine["assigned_engineer"] = None
-            
+
+        if not machine.get("status") and machine.get("current_health_score") is not None:
+            health = machine["current_health_score"]
+            machine["status"] = (
+                MachineStatus.HEALTHY if health >= 75
+                else MachineStatus.WARNING if health >= 50
+                else MachineStatus.CRITICAL
+            )
+
         return machine
 
     def create_machine(self, data: Dict[str, Any]) -> Dict[str, Any]:

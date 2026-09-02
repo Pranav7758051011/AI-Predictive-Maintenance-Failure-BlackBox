@@ -6,7 +6,7 @@ from app.repositories.prediction_repository import PredictionRepository
 from app.repositories.machine_repository import MachineRepository
 from app.repositories.sensor_repository import SensorRepository
 from app.services.ml_service import MLService
-from app.utils.constants import UserRole
+from app.utils.constants import UserRole, MachineStatus
 from app.utils.db_helpers import to_object_id
 from app.utils.exceptions import NotFoundError, ForbiddenError, ValidationError
 
@@ -74,9 +74,15 @@ class PredictionService:
             telemetry=telemetry_data
         )
 
-        # 3. Update machine current_health_score (leave current_rul_hours untouched!)
+        # 3. Update machine current_health_score and dynamic status
+        computed_status = (
+            MachineStatus.CRITICAL if (health_score < 50 or inference.get("failure_prediction"))
+            else MachineStatus.WARNING if health_score < 75
+            else MachineStatus.HEALTHY
+        )
         self.machine_repo.update_by_id(machine["id"], {
-            "current_health_score": health_score
+            "current_health_score": health_score,
+            "status": computed_status
         })
 
         # 4. Construct prediction document

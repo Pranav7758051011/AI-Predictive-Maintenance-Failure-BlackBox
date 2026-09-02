@@ -74,9 +74,10 @@ export default function Equipment() {
       (m.location || '').toLowerCase().includes(term);
 
     const health = m.current_health_score !== undefined ? m.current_health_score : 100;
-    if (filterStatus === 'HEALTHY') return matchesSearch && health >= 75 && m.status !== 'CRITICAL';
-    if (filterStatus === 'WARNING') return matchesSearch && ((health >= 50 && health < 75) || m.status === 'WARNING');
-    if (filterStatus === 'CRITICAL') return matchesSearch && (health < 50 || m.status === 'CRITICAL');
+    const computedStatus = health >= 75 ? 'HEALTHY' : health >= 50 ? 'WARNING' : 'CRITICAL';
+    if (filterStatus === 'HEALTHY') return matchesSearch && computedStatus === 'HEALTHY';
+    if (filterStatus === 'WARNING') return matchesSearch && computedStatus === 'WARNING';
+    if (filterStatus === 'CRITICAL') return matchesSearch && computedStatus === 'CRITICAL';
     return matchesSearch;
   });
 

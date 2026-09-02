@@ -174,6 +174,10 @@ export default function EquipmentDetails() {
     currentHealth >= 50 ? 'MEDIUM' :
     currentHealth >= 25 ? 'HIGH' : 'CRITICAL';
 
+  const computedStatus =
+    currentHealth >= 75 ? 'HEALTHY' :
+    currentHealth >= 50 ? 'WARNING' : 'CRITICAL';
+
   return (
     <div className="min-h-screen bg-canvas text-industrial-text flex flex-col">
       <Navbar />
@@ -195,7 +199,7 @@ export default function EquipmentDetails() {
                 </h1>
                 <RiskBadge level={riskLevel} />
                 <span className="text-xs font-semibold text-industrial-subtext px-2.5 py-0.5 rounded bg-industrial-gray border border-industrial-border">
-                  {machine.status || 'HEALTHY'}
+                  {computedStatus}
                 </span>
               </div>
               <p className="text-xs text-industrial-subtext mt-1">

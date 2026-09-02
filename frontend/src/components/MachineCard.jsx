@@ -20,14 +20,20 @@ export default function MachineCard({ machine }) {
   } = machine;
 
   const health = current_health_score !== undefined && current_health_score !== null ? current_health_score : 100;
+
+  const computedStatus =
+    health >= 75 ? 'HEALTHY' :
+    health >= 50 ? 'WARNING' :
+    'CRITICAL';
+
   const riskLevel =
     health >= 75 ? 'LOW' :
     health >= 50 ? 'MEDIUM' :
     health >= 25 ? 'HIGH' : 'CRITICAL';
 
   const statusColor =
-    status === 'CRITICAL' ? 'text-status-failure bg-red-50 border-red-200' :
-    status === 'WARNING' ? 'text-status-warning bg-amber-50 border-amber-200' :
+    computedStatus === 'CRITICAL' ? 'text-status-failure bg-red-50 border-red-200' :
+    computedStatus === 'WARNING' ? 'text-status-warning bg-amber-50 border-amber-200' :
     'text-status-success bg-emerald-50 border-emerald-200';
 
   const handleDownloadPdf = (e) => {
@@ -81,7 +87,7 @@ export default function MachineCard({ machine }) {
             <span className="truncate">{location || 'Main Factory Bay'}</span>
           </span>
           <span className={`px-2 py-0.5 rounded border text-[10px] font-extrabold uppercase tracking-wider ${statusColor}`}>
-            {status}
+            {computedStatus}
           </span>
         </div>
 
