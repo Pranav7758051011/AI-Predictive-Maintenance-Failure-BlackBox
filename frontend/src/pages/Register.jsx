@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiCpu, FiUser, FiMail, FiLock, FiShield, FiAlertCircle, FiArrowRight } from 'react-icons/fi';
+import { FiCpu, FiUser, FiMail, FiLock, FiShield, FiAlertCircle, FiArrowRight, FiInfo } from 'react-icons/fi';
 
 export default function Register() {
   const { register, login } = useAuth();
@@ -9,7 +9,7 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('ENGINEER');
+  const [role, setRole] = useState('CLIENT');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,8 +25,8 @@ export default function Register() {
         password,
         role
       });
-      // Auto-login after registration
-      await login(email, password);
+      // Auto-login after registration with chosen role
+      await login(email, password, role);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed. Please check your inputs.');
@@ -45,7 +45,7 @@ export default function Register() {
           Create Plant Account
         </h2>
         <p className="mt-1.5 text-xs text-industrial-subtext">
-          Register with Role-Based Access Control (Admin, Engineer, Viewer)
+          Register with Role-Based Access Control (Admin, Engineer, Client)
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export default function Register() {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
-                System Role (RBAC)
+                Account Role (RBAC)
               </label>
               <div className="relative">
                 <FiShield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -121,11 +121,20 @@ export default function Register() {
                   onChange={(e) => setRole(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-industrial-border rounded-lg text-sm text-industrial-text focus:outline-none focus:ring-2 focus:ring-steel-blue focus:bg-white transition"
                 >
-                  <option value="ENGINEER">ENGINEER (Manage & Inspect Assigned Machines)</option>
-                  <option value="ADMIN">ADMIN (Full Plant & System Control)</option>
-                  <option value="VIEWER">VIEWER (Read-Only Observer)</option>
+                  <option value="CLIENT">CLIENT (Read-Only Plant Overview)</option>
+                  <option value="ENGINEER">ENGINEER (Manage & Inspect Equipment)</option>
+                  <option value="ADMIN">ADMIN (Full Control — Max 2 Active Admins)</option>
                 </select>
               </div>
+
+              {role === 'ADMIN' && (
+                <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800 flex items-start gap-1.5">
+                  <FiInfo className="text-sm shrink-0 mt-0.5 text-amber-600" />
+                  <span>
+                    <strong>Strict Admin Cap:</strong> Only 2 Admin accounts can exist simultaneously. If 2 Admins are registered, an existing Admin must delete their account before a new one can be registered.
+                  </span>
+                </div>
+              )}
             </div>
 
             <button
@@ -133,7 +142,7 @@ export default function Register() {
               disabled={loading}
               className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-steel-blue hover:bg-steel-blue-dark text-white font-bold text-sm shadow-sm hover:shadow-glow-blue transition duration-200 disabled:opacity-50"
             >
-              {loading ? 'Creating Account...' : 'Register Account'}
+              {loading ? 'Creating Account...' : `Register as ${role}`}
               <FiArrowRight className="text-base" />
             </button>
           </form>

@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FiCpu, FiArrowRight, FiUser, FiLogOut, FiShield, FiArchive } from 'react-icons/fi';
+import { FiCpu, FiArrowRight, FiUser, FiLogOut, FiShield, FiArchive, FiTrash2 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, role, isAuthenticated, logout } = useAuth();
+  const { user, role, isAuthenticated, logout, deleteAccount } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
 
   const navLinks = [
     { path: '/', label: 'Platform' },
@@ -21,6 +22,20 @@ export default function Navbar() {
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    const prompt = role === 'ADMIN'
+      ? 'Are you sure you want to permanently delete your Admin account? This will free up 1 of the 2 Admin slots.'
+      : 'Are you sure you want to permanently delete your account?';
+    if (window.confirm(prompt)) {
+      try {
+        await deleteAccount();
+        navigate('/login');
+      } catch (err) {
+        alert('Failed to delete account: ' + err.message);
+      }
+    }
   };
 
   return (
@@ -68,6 +83,40 @@ export default function Navbar() {
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-xs font-extrabold text-industrial-text">{user?.full_name || 'Operator'}</span>
                 <span className="text-[10px] font-bold text-industrial-orange uppercase tracking-wider">{role}</span>
+              </div>
+
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 transition"
+                  title="Account Settings"
+                >
+                  <FiUser className="text-sm" />
+                </button>
+
+                {showMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-industrial-border rounded-xl shadow-lg py-1.5 z-50 text-xs">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <div className="font-bold text-slate-800 truncate">{user?.full_name}</div>
+                      <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
+                      <div className="text-[10px] font-extrabold text-industrial-orange mt-0.5">{role}</div>
+                    </div>
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="w-full px-3 py-2 text-left text-red-600 hover:bg-red-50 flex items-center gap-2 transition"
+                    >
+                      <FiTrash2 className="text-xs" />
+                      <span>Delete My Account</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2 text-left text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition"
+                    >
+                      <FiLogOut className="text-xs" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

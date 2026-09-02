@@ -9,10 +9,14 @@ export const authService = {
     return data;
   },
 
-  async login(email, password) {
+  async login(email, password, role) {
+    const payload = { email, password };
+    if (role) {
+      payload.role = role;
+    }
     const data = await apiRequest('/api/auth/login', {
       method: 'POST',
-      body: { email, password }
+      body: payload
     });
     if (data?.access_token) {
       setTokens(data.access_token, data.refresh_token);
@@ -28,6 +32,15 @@ export const authService = {
       await apiRequest('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       // Ignore network errors on logout
+    } finally {
+      clearTokens();
+    }
+  },
+
+  async deleteAccount() {
+    try {
+      const res = await apiRequest('/api/users/profile', { method: 'DELETE' });
+      return res;
     } finally {
       clearTokens();
     }

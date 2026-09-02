@@ -127,3 +127,31 @@ def change_password():
         message="Password changed successfully.",
         status_code=200
     )
+
+@user_bp.route("/profile", methods=["DELETE"])
+@user_bp.route("/me", methods=["DELETE"])
+@jwt_required()
+def delete_profile():
+    """
+    Delete User Account
+    ---
+    tags:
+      - Users
+    summary: Permanently delete current authenticated account
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Account deleted successfully
+      401:
+        description: Unauthorized
+      404:
+        description: User not found
+    """
+    user_id = get_jwt_identity()
+    user_service.delete_account(user_id)
+    return success_response(
+        data=None,
+        message="Account permanently deleted successfully.",
+        status_code=200
+    )

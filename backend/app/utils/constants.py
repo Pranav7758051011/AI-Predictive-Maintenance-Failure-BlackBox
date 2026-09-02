@@ -3,8 +3,9 @@ class UserRole:
     ADMIN = "ADMIN"
     ENGINEER = "ENGINEER"
     VIEWER = "VIEWER"
+    CLIENT = "CLIENT"
     
-    ALL = [ADMIN, ENGINEER, VIEWER]
+    ALL = [ADMIN, ENGINEER, VIEWER, CLIENT]
 
 class MachineStatus:
     """Operational statuses of industrial machines."""

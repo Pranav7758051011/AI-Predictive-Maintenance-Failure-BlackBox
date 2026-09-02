@@ -55,3 +55,10 @@ class UserService:
         new_password_hash = bcrypt.generate_password_hash(new_password).decode("utf-8")
         self.user_repo.update_by_id(user_id, {"password_hash": new_password_hash})
         return True
+
+    def delete_account(self, user_id: str) -> bool:
+        """Deletes user account (freeing up admin or engineer slot)."""
+        user = self.user_repo.find_by_id(user_id)
+        if not user:
+            raise NotFoundError("User not found.", error_code="USER_NOT_FOUND")
+        return self.user_repo.delete_by_id(user_id)

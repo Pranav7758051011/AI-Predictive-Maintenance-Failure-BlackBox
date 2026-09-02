@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiCpu, FiMail, FiLock, FiAlertCircle, FiArrowRight, FiCheckCircle } from 'react-icons/fi';
+import { FiCpu, FiMail, FiLock, FiAlertCircle, FiArrowRight, FiShield, FiUser, FiTool } from 'react-icons/fi';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState('ADMIN');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,22 +18,23 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(email, password, selectedRole);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message || 'Login failed. Please verify your credentials.');
+      setError(err.message || 'Login failed. Please verify your credentials and role.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickDemoLogin = async (demoEmail, demoPassword) => {
+  const handleQuickDemoLogin = async (demoEmail, demoPassword, role) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
+    setSelectedRole(role);
     setError('');
     setLoading(true);
     try {
-      await login(demoEmail, demoPassword);
+      await login(demoEmail, demoPassword, role);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Demo login failed.');
@@ -40,6 +42,12 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  const roleOptions = [
+    { id: 'ADMIN', label: 'Admin', desc: 'Max 2 Admins • Full Control', icon: FiShield },
+    { id: 'ENGINEER', label: 'Engineer', desc: 'Machine Management', icon: FiTool },
+    { id: 'CLIENT', label: 'Client', desc: 'Observer / Read-Only', icon: FiUser }
+  ];
 
   return (
     <div className="min-h-screen bg-canvas flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -64,7 +72,40 @@ export default function Login() {
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* Role Selection Tabs */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
+                Select Your Role
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {roleOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = selectedRole === opt.id;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => setSelectedRole(opt.id)}
+                      className={`p-2.5 rounded-lg border text-center transition flex flex-col items-center justify-center gap-1 ${
+                        isSelected
+                          ? 'bg-steel-blue text-white border-steel-blue-dark shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className={isSelected ? 'text-industrial-orange' : 'text-slate-400'} />
+                      <span className="text-xs font-bold">{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                {selectedRole === 'ADMIN' ? '⚠️ System limit: Maximum 2 Admin accounts can exist simultaneously.' :
+                 selectedRole === 'ENGINEER' ? 'Access and inspect assigned machines & telemetry streams.' :
+                 'Read-only client observer view.'}
+              </p>
+            </div>
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
                 Work Email Address
@@ -76,7 +117,7 @@ export default function Login() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="engineer@plant.com"
+                  placeholder="name@plant.com"
                   className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-industrial-border rounded-lg text-sm text-industrial-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-steel-blue focus:bg-white transition"
                 />
               </div>
@@ -102,34 +143,39 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-steel-blue hover:bg-steel-blue-dark text-white font-bold text-sm shadow-sm hover:shadow-glow-blue transition duration-200 disabled:opacity-50"
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-steel-blue hover:bg-steel-blue-dark text-white font-bold text-sm shadow-sm hover:shadow-glow-blue transition duration-200 disabled:opacity-50"
             >
-              {loading ? 'Authenticating...' : 'Sign In to Console'}
+              {loading ? 'Authenticating...' : `Sign In as ${selectedRole}`}
               <FiArrowRight className="text-base" />
             </button>
           </form>
 
-          {/* Quick Demo Access Credentials */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">
-              Quick Demo Logins
+          {/* Quick Demo Fill Buttons */}
+          <div className="mt-6 pt-5 border-t border-industrial-border">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-industrial-subtext text-center mb-2.5">
+              Quick Demo Login
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin('admin@plant.com', 'AdminPassword123!')}
-                className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                onClick={() => handleQuickDemoLogin('admin.plant@factory.io', 'SecureAdminPassword123!', 'ADMIN')}
+                className="px-2 py-1.5 text-[11px] font-bold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
               >
-                <FiCheckCircle className="text-emerald-600" />
-                <span>Admin</span>
+                Admin (1 of 2)
               </button>
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin('engineer1@plant.com', 'EngPassword123!')}
-                className="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                onClick={() => handleQuickDemoLogin('engineer.lead@factory.io', 'SecureEngineerPassword123!', 'ENGINEER')}
+                className="px-2 py-1.5 text-[11px] font-bold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
               >
-                <FiCheckCircle className="text-industrial-orange" />
-                <span>Engineer</span>
+                Lead Engineer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('viewer.observer@factory.io', 'SecureViewerPassword123!', 'CLIENT')}
+                className="px-2 py-1.5 text-[11px] font-bold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
+              >
+                Client View
               </button>
             </div>
           </div>
@@ -137,7 +183,7 @@ export default function Login() {
           <div className="mt-5 text-center text-xs text-industrial-subtext">
             Don't have an account?{' '}
             <Link to="/register" className="font-bold text-steel-blue hover:text-steel-blue-dark underline">
-              Create New Account
+              Create Account
             </Link>
           </div>
         </div>

@@ -41,8 +41,8 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, [checkAuth]);
 
-  const login = async (email, password) => {
-    const res = await authService.login(email, password);
+  const login = async (email, password, role) => {
+    const res = await authService.login(email, password, role);
     const loggedInUser = res.user;
     setUser(loggedInUser);
     setToken(res.access_token);
@@ -60,10 +60,17 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
-  const role = user?.role || 'VIEWER';
+  const deleteAccount = async () => {
+    await authService.deleteAccount();
+    setUser(null);
+    setToken(null);
+  };
+
+  const role = user?.role || 'CLIENT';
   const isAdmin = role === 'ADMIN';
   const isEngineer = role === 'ENGINEER';
-  const isViewer = role === 'VIEWER';
+  const isClient = role === 'CLIENT' || role === 'VIEWER';
+  const isViewer = isClient;
   const canWrite = isAdmin || isEngineer;
 
   return (
@@ -71,17 +78,19 @@ export function AuthProvider({ children }) {
       value={{
         user,
         token,
-        role,
+        role: role === 'VIEWER' ? 'CLIENT' : role,
         isAdmin,
         isEngineer,
+        isClient,
         isViewer,
         canWrite,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && !!token,
         isLoading,
         login,
         register,
         logout,
-        refreshUser: checkAuth
+        deleteAccount,
+        checkAuth
       }}
     >
       {children}

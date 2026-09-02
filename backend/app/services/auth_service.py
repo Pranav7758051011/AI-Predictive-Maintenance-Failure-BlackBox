@@ -25,13 +25,25 @@ class AuthService:
                 error_code="EMAIL_ALREADY_EXISTS"
             )
 
+        role = data.get("role", "VIEWER").upper()
+        if role == "CLIENT":
+            role = "VIEWER"
+
+        if role == "ADMIN":
+            admin_count = self.user_repo.count({"role": "ADMIN"})
+            if admin_count >= 2:
+                raise ConflictError(
+                    "Maximum limit of 2 Admin accounts has been reached. An existing Admin must delete their account before a new Admin can register.",
+                    error_code="MAX_ADMINS_EXCEEDED"
+                )
+
         password_hash = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
         
         user_doc = {
             "email": email,
             "password_hash": password_hash,
             "full_name": data["full_name"].strip(),
-            "role": data.get("role", "VIEWER"),
+            "role": role,
             "is_active": True
         }
         
@@ -59,6 +71,18 @@ class AuthService:
                 "Account has been deactivated. Please contact an administrator.",
                 error_code="ACCOUNT_INACTIVE"
             )
+
+        # Verify requested role if provided on login
+        requested_role = data.get("role")
+        if requested_role:
+            req_norm = "VIEWER" if str(requested_role).upper() == "CLIENT" else str(requested_role).upper()
+            user_norm = "VIEWER" if str(user.get("role", "VIEWER")).upper() == "CLIENT" else str(user.get("role", "VIEWER")).upper()
+            if user_norm != req_norm:
+                display_user_role = "CLIENT" if user["role"] == "VIEWER" else user["role"]
+                raise UnauthorizedError(
+                    f"Selected role '{requested_role}' does not match your registered account role ('{display_user_role}').",
+                    error_code="ROLE_MISMATCH"
+                )
 
         user_id = str(user["id"])
         additional_claims = {

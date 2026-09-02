@@ -42,6 +42,10 @@ class LoginRequestSchema(Schema):
         required=True,
         error_messages={"required": "Password is required."}
     )
+    role = fields.String(
+        required=False,
+        validate=validate.OneOf(UserRole.ALL, error=f"Role must be one of: {UserRole.ALL}")
+    )
 
 class UserResponseSchema(Schema):
     """Safe public representation of user document (never includes password_hash)."""
