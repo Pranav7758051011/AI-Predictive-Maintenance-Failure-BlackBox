@@ -72,6 +72,60 @@ def register_jwt_callbacks():
             status_code=401
         )
 
+def seed_initial_data(app: Flask):
+    """Automatically seeds default demo accounts and machines if database is empty."""
+    try:
+        from app.database import MongoManager
+        db = MongoManager.get_db()
+        if db is None:
+            return
+            
+        users_col = db["users"]
+        
+        # 1. Admin Account
+        if users_col.count_documents({"email": "admin.plant@factory.io"}) == 0:
+            admin_hash = bcrypt.generate_password_hash("SecureAdminPassword123!").decode("utf-8")
+            users_col.insert_one({
+                "email": "admin.plant@factory.io",
+                "password_hash": admin_hash,
+                "full_name": "Chief Plant Admin",
+                "role": "ADMIN",
+                "is_active": True
+            })
+            
+        # 2. Lead Engineer Account
+        if users_col.count_documents({"email": "engineer.lead@factory.io"}) == 0:
+            eng_hash = bcrypt.generate_password_hash("SecureEngineerPassword123!").decode("utf-8")
+            users_col.insert_one({
+                "email": "engineer.lead@factory.io",
+                "password_hash": eng_hash,
+                "full_name": "Senior Reliability Engineer",
+                "role": "ENGINEER",
+                "is_active": True
+            })
+            
+        # 3. Client / Viewer Account
+        if users_col.count_documents({"email": "viewer.observer@factory.io"}) == 0:
+            view_hash = bcrypt.generate_password_hash("SecureViewerPassword123!").decode("utf-8")
+            users_col.insert_one({
+                "email": "viewer.observer@factory.io",
+                "password_hash": view_hash,
+                "full_name": "Client Observer",
+                "role": "CLIENT",
+                "is_active": True
+            })
+
+        # 4. Seed Baseline Fleet if empty
+        machines_col = db["machines"]
+        if machines_col.count_documents({}) == 0:
+            machines_col.insert_many([
+                {"serial_number": "CNC-204", "name": "5-Axis Heavy CNC Milling Center", "product_type": "M", "location": "Bay 4 - Sector A", "status": "HEALTHY", "current_health_score": 98.0},
+                {"serial_number": "PRESS-102", "name": "Hydraulic Stamping Press", "product_type": "H", "location": "Bay 2 - Press Bay", "status": "HEALTHY", "current_health_score": 95.0},
+                {"serial_number": "MOTOR-308", "name": "High-Power Induction Drive Motor", "product_type": "L", "location": "Bay 1 - Powerhouse", "status": "WARNING", "current_health_score": 62.0}
+            ])
+    except Exception as e:
+        app.logger.warning(f"Initial data seed check: {e}")
+
 def create_app(config_name: Optional[str] = None, custom_config: Optional[Dict[str, Any]] = None) -> Flask:
     """
     Flask Application Factory.
@@ -116,6 +170,9 @@ def create_app(config_name: Optional[str] = None, custom_config: Optional[Dict[s
     app.register_blueprint(sensor_bp)
     app.register_blueprint(prediction_bp)
     app.register_blueprint(blackbox_bp)
+    
+    # 7. Auto-seed demo accounts & fleet
+    seed_initial_data(app)
     
     app.logger.info(
         f"Application initialized successfully in '{app.config.get('ENV')}' environment."
