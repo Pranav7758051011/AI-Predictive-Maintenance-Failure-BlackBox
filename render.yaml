@@ -1,0 +1,27 @@
+services:
+  # Flask Backend Web Service
+  - type: web
+    name: indusense-backend
+    env: python
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 backend.run:app"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: MONGO_USE_MOCK
+        value: "0"
+
+  # React Frontend Static Site
+  - type: web
+    name: indusense-frontend
+    env: static
+    buildCommand: "cd frontend && npm install && npm run build"
+    staticPublishPath: "./frontend/dist"
+    routes:
+      - type: rewrite
+        source: "/*"
+        destination: "/index.html"
