@@ -1,0 +1,11 @@
+{
+  "name": "ai-predictive-maintenance-failure-blackbox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Industrial AI Predictive Maintenance with Failure Black Box",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview"
+  }
+}
