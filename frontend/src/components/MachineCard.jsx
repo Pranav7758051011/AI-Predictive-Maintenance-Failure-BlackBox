@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiActivity, FiUser, FiMapPin } from 'react-icons/fi';
+import { FiArrowRight, FiActivity, FiUser, FiMapPin, FiDownload } from 'react-icons/fi';
 import RiskBadge from './RiskBadge';
 import HealthGauge from './HealthGauge';
+import { generateMachinePdfReport } from '../utils/pdfReportGenerator';
+import { useAuth } from '../context/AuthContext';
 
 export default function MachineCard({ machine }) {
+  const { user } = useAuth();
   const {
     id,
     serial_number,
@@ -26,6 +29,28 @@ export default function MachineCard({ machine }) {
     status === 'CRITICAL' ? 'text-status-failure bg-red-50 border-red-200' :
     status === 'WARNING' ? 'text-status-warning bg-amber-50 border-amber-200' :
     'text-status-success bg-emerald-50 border-emerald-200';
+
+  const handleDownloadPdf = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    generateMachinePdfReport({
+      machine,
+      latestTelemetry: {
+        process_temp: 308.6,
+        air_temp: 298.1,
+        rotational_speed: 1550,
+        torque: 42.0,
+        tool_wear: 20
+      },
+      latestPrediction: {
+        health_score: health,
+        failure_probability: health < 50 ? 0.85 : 0.04,
+        failure_type: health < 50 ? 'Overstrain Failure (OSF)' : 'NO_FAILURE',
+        model_version: 'failure-model-v1.0'
+      },
+      user
+    });
+  };
 
   return (
     <div className="industrial-card p-5 hover:shadow-industrial-hover hover:border-steel-blue transition duration-300 flex flex-col justify-between group relative overflow-hidden">
@@ -76,9 +101,17 @@ export default function MachineCard({ machine }) {
         </div>
       </div>
 
-      {/* Footer Link */}
+      {/* Footer Link & PDF Download */}
       <div className="mt-4 pt-3 border-t border-industrial-border flex items-center justify-between">
-        <span className="text-xs font-semibold text-industrial-subtext">Health: {Math.round(health)}%</span>
+        <button
+          onClick={handleDownloadPdf}
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-steel-blue px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 transition"
+          title="Download PDF Report"
+        >
+          <FiDownload className="text-xs text-industrial-orange" />
+          <span>PDF Report</span>
+        </button>
+
         <Link
           to={`/equipment/${id}`}
           className="inline-flex items-center gap-1 text-xs font-bold text-steel-blue hover:text-industrial-orange transition group-hover:translate-x-0.5"

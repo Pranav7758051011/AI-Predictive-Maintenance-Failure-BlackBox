@@ -11,6 +11,7 @@ import { sensorService } from '../services/sensorService';
 import { predictionService } from '../services/predictionService';
 import { blackboxService } from '../services/blackboxService';
 import { useAuth } from '../context/AuthContext';
+import { generateMachinePdfReport } from '../utils/pdfReportGenerator';
 import {
   FiArrowLeft,
   FiActivity,
@@ -24,7 +25,8 @@ import {
   FiPlay,
   FiArchive,
   FiCheckCircle,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiDownload
 } from 'react-icons/fi';
 
 export default function EquipmentDetails() {
@@ -201,7 +203,7 @@ export default function EquipmentDetails() {
               </p>
             </div>
 
-            <div className="flex items-center gap-4 border-l border-industrial-border pl-6">
+            <div className="flex flex-wrap items-center gap-4 border-l border-industrial-border pl-6">
               <HealthGauge value={Math.round(currentHealth)} size={80} strokeWidth={8} />
               <div>
                 <span className="text-[10px] font-bold uppercase text-industrial-subtext block">FAILURE PROBABILITY</span>
@@ -210,6 +212,22 @@ export default function EquipmentDetails() {
                 </span>
                 <span className="text-[10px] text-slate-400 block mt-0.5">XGBoost Native AI Engine</span>
               </div>
+
+              <button
+                onClick={() => generateMachinePdfReport({
+                  machine,
+                  latestTelemetry,
+                  latestPrediction,
+                  historyTelemetry,
+                  blackboxes,
+                  user
+                })}
+                className="ml-2 inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-steel-blue hover:bg-steel-blue-dark text-white text-xs font-bold transition shadow-sm hover:shadow-glow-blue cursor-pointer"
+                title="Download ISO 13374 Diagnostic PDF Report"
+              >
+                <FiDownload className="text-sm text-industrial-orange" />
+                <span>Download PDF Report</span>
+              </button>
             </div>
           </div>
 
