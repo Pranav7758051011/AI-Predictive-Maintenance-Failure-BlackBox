@@ -39,6 +39,13 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkAuth();
+    
+    const handleForceLogout = () => {
+      setUser(null);
+      setToken(null);
+    };
+    window.addEventListener('auth-logout', handleForceLogout);
+    return () => window.removeEventListener('auth-logout', handleForceLogout);
   }, [checkAuth]);
 
   const login = async (email, password, role) => {

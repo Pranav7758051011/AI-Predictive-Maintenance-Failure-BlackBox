@@ -92,6 +92,15 @@ export async function apiRequest(endpoint, options = {}) {
 
   if (!response.ok) {
     const errorMessage = data.message || data.error || `HTTP ${response.status}: Request failed`;
+    
+    // If account was removed or token is invalid, purge ghost session
+    if (response.status === 401 || data.error_code === 'USER_NOT_FOUND' || (typeof errorMessage === 'string' && errorMessage.includes('User account not found'))) {
+      clearTokens();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('auth-logout'));
+      }
+    }
+
     const appError = new Error(errorMessage);
     appError.status = response.status;
     appError.errorCode = data.error_code;

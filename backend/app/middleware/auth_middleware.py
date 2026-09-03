@@ -63,9 +63,16 @@ def get_current_user() -> Dict[str, Any]:
     user_id = get_jwt_identity()
     user = user_repo.find_by_id(user_id)
     
+    # Fallback to lookup by email if ID was re-generated
     if not user:
-        raise UnauthorizedError("User account not found or was removed")
+        claims = get_jwt()
+        email = claims.get("email")
+        if email:
+            user = user_repo.find_by_email(email)
+            
+    if not user:
+        raise UnauthorizedError("User account not found or was removed", error_code="USER_NOT_FOUND")
     if not user.get("is_active", True):
-        raise UnauthorizedError("User account is inactive. Please contact administrator.")
+        raise UnauthorizedError("User account is inactive. Please contact administrator.", error_code="ACCOUNT_INACTIVE")
         
     return user
