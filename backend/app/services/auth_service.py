@@ -60,7 +60,10 @@ class AuthService:
 
         user = self.user_repo.find_by_email(email)
         if not user:
-            raise UnauthorizedError("Invalid email or password.", error_code="INVALID_CREDENTIALS")
+            raise UnauthorizedError(
+                f"No account found for '{email}'. Please click 'Create Account' below to register first.",
+                error_code="INVALID_CREDENTIALS"
+            )
 
         # Bulletproof password hash verification
         is_valid_password = False
@@ -83,7 +86,7 @@ class AuthService:
                 is_valid_password = True
                 
         if not is_valid_password:
-            raise UnauthorizedError("Invalid email or password.", error_code="INVALID_CREDENTIALS")
+            raise UnauthorizedError("Incorrect password. Please re-enter your password.", error_code="INVALID_CREDENTIALS")
 
         # Verify account active status
         if not user.get("is_active", True):
@@ -91,18 +94,6 @@ class AuthService:
                 "Account has been deactivated. Please contact an administrator.",
                 error_code="ACCOUNT_INACTIVE"
             )
-
-        # Verify requested role if provided on login
-        requested_role = data.get("role")
-        if requested_role:
-            req_norm = "VIEWER" if str(requested_role).upper() == "CLIENT" else str(requested_role).upper()
-            user_norm = "VIEWER" if str(user.get("role", "VIEWER")).upper() == "CLIENT" else str(user.get("role", "VIEWER")).upper()
-            if user_norm != req_norm:
-                display_user_role = "CLIENT" if user["role"] == "VIEWER" else user["role"]
-                raise UnauthorizedError(
-                    f"Selected role '{requested_role}' does not match your registered account role ('{display_user_role}').",
-                    error_code="ROLE_MISMATCH"
-                )
 
         user_id = str(user["id"])
         additional_claims = {
