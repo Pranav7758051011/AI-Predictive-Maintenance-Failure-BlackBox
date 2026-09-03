@@ -3,13 +3,9 @@ from marshmallow import Schema, fields, validate, validates, ValidationError
 from app.utils.constants import UserRole
 
 def validate_password_complexity(password: str):
-    """Validates that password has at least 8 characters, 1 digit or symbol, and 1 letter."""
-    if len(password) < 8:
-        raise ValidationError("Password must be at least 8 characters long.")
-    if not re.search(r"[A-Za-z]", password):
-        raise ValidationError("Password must contain at least one letter.")
-    if not re.search(r"[\d\W_]", password):
-        raise ValidationError("Password must contain at least one number or special character.")
+    """Validates that password has at least 6 characters."""
+    if not password or len(password) < 6:
+        raise ValidationError("Password must be at least 6 characters long.")
 
 class RegisterRequestSchema(Schema):
     """Schema for user registration."""

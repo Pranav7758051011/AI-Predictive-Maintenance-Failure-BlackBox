@@ -19,12 +19,23 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register({
-        full_name: fullName,
-        email,
-        password,
-        role
-      });
+      try {
+        await register({
+          full_name: fullName,
+          email,
+          password,
+          role
+        });
+      } catch (regErr) {
+        // If email is already registered, attempt login with the provided credentials
+        if (regErr.message?.includes('already registered') || regErr.errorCode === 'EMAIL_ALREADY_EXISTS') {
+          await login(email, password, role);
+          navigate('/dashboard');
+          return;
+        }
+        throw regErr;
+      }
+      
       // Auto-login after registration with chosen role
       await login(email, password, role);
       navigate('/dashboard');
