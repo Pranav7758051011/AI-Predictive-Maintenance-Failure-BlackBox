@@ -26,8 +26,8 @@ class BaseConfig:
     # MongoDB settings
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "ai_predictive_maintenance")
-    MONGO_CONNECT_TIMEOUT_MS = 3000
-    MONGO_SERVER_SELECTION_TIMEOUT_MS = 3000
+    MONGO_CONNECT_TIMEOUT_MS = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "15000"))
+    MONGO_SERVER_SELECTION_TIMEOUT_MS = int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS", "15000"))
 
     # CORS settings
     CORS_ORIGINS = [

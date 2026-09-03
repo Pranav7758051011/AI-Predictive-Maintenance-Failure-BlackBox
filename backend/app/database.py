@@ -18,8 +18,8 @@ class MongoManager:
         """Initializes PyMongo connection with Flask application config."""
         mongo_uri = app.config.get("MONGO_URI", "mongodb://localhost:27017")
         db_name = app.config.get("MONGO_DB_NAME", "ai_predictive_maintenance")
-        server_selection_timeout_ms = app.config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 3000)
-        connect_timeout_ms = app.config.get("MONGO_CONNECT_TIMEOUT_MS", 3000)
+        server_selection_timeout_ms = app.config.get("MONGO_SERVER_SELECTION_TIMEOUT_MS", 15000)
+        connect_timeout_ms = app.config.get("MONGO_CONNECT_TIMEOUT_MS", 15000)
 
         # Allow mongomock or custom client injection during testing or dev fallback
         if (app.config.get("TESTING") and app.config.get("MONGO_MOCK_CLIENT")) or app.config.get("MONGO_USE_MOCK") or os.getenv("MONGO_USE_MOCK", "0") in ("1", "true", "True"):
