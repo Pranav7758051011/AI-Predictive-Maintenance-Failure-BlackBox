@@ -186,3 +186,18 @@ def get_me():
         message="Current user profile retrieved successfully.",
         status_code=200
     )
+
+@auth_bp.route("/reset-admins", methods=["POST"])
+def reset_admins():
+    """Purges all existing admin accounts so 2 admin slots are completely available."""
+    from app.database import get_db
+    db = get_db()
+    deleted_count = 0
+    if db is not None:
+        result = db["users"].delete_many({"role": "ADMIN"})
+        deleted_count = result.deleted_count
+    return success_response(
+        data={"deleted_count": deleted_count},
+        message=f"All {deleted_count} admin accounts deleted successfully. 2 Admin slots are now fully open.",
+        status_code=200
+    )
