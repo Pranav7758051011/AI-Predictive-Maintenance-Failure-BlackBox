@@ -32,11 +32,19 @@ class MongoManager:
 
         try:
             logger.info(f"Connecting to MongoDB database '{db_name}' at {mongo_uri}...")
-            cls._client = MongoClient(
-                mongo_uri,
-                serverSelectionTimeoutMS=server_selection_timeout_ms,
-                connectTimeoutMS=connect_timeout_ms
-            )
+            
+            client_kwargs = {
+                "serverSelectionTimeoutMS": server_selection_timeout_ms,
+                "connectTimeoutMS": connect_timeout_ms
+            }
+            
+            try:
+                import certifi
+                client_kwargs["tlsCAFile"] = certifi.where()
+            except Exception as cert_err:
+                logger.debug(f"certifi load: {cert_err}")
+
+            cls._client = MongoClient(mongo_uri, **client_kwargs)
             cls._db = cls._client[db_name]
             
             # Non-blocking ping test
