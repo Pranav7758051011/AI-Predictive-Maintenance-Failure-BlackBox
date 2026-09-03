@@ -73,14 +73,21 @@ def register_jwt_callbacks():
         )
 
 def seed_initial_data(app: Flask):
-    """Automatically seeds default demo accounts and machines if database is empty."""
+    """Automatically seeds default demo accounts, machines, telemetry, and Black Box if empty."""
     try:
         from app.database import MongoManager
+        from datetime import datetime, timezone, timedelta
+        from bson import ObjectId
+        
         db = MongoManager.get_db()
         if db is None:
             return
             
         users_col = db["users"]
+        machines_col = db["machines"]
+        sensors_col = db["sensor_telemetry"]
+        preds_col = db["predictions"]
+        blackbox_col = db["failure_blackboxes"]
         
         # 1. Admin Account
         if users_col.count_documents({"email": "admin.plant@factory.io"}) == 0:
@@ -94,15 +101,19 @@ def seed_initial_data(app: Flask):
             })
             
         # 2. Lead Engineer Account
-        if users_col.count_documents({"email": "engineer.lead@factory.io"}) == 0:
+        engineer_doc = users_col.find_one({"email": "engineer.lead@factory.io"})
+        if not engineer_doc:
             eng_hash = bcrypt.generate_password_hash("SecureEngineerPassword123!").decode("utf-8")
-            users_col.insert_one({
+            res_eng = users_col.insert_one({
                 "email": "engineer.lead@factory.io",
                 "password_hash": eng_hash,
                 "full_name": "Senior Reliability Engineer",
                 "role": "ENGINEER",
                 "is_active": True
             })
+            engineer_id = res_eng.inserted_id
+        else:
+            engineer_id = engineer_doc["_id"]
             
         # 3. Client / Viewer Account
         if users_col.count_documents({"email": "viewer.observer@factory.io"}) == 0:
@@ -116,13 +127,139 @@ def seed_initial_data(app: Flask):
             })
 
         # 4. Seed Baseline Fleet if empty
-        machines_col = db["machines"]
         if machines_col.count_documents({}) == 0:
-            machines_col.insert_many([
-                {"serial_number": "CNC-204", "name": "5-Axis Heavy CNC Milling Center", "product_type": "M", "location": "Bay 4 - Sector A", "status": "HEALTHY", "current_health_score": 98.0},
-                {"serial_number": "PRESS-102", "name": "Hydraulic Stamping Press", "product_type": "H", "location": "Bay 2 - Press Bay", "status": "HEALTHY", "current_health_score": 95.0},
-                {"serial_number": "MOTOR-308", "name": "High-Power Induction Drive Motor", "product_type": "L", "location": "Bay 1 - Powerhouse", "status": "WARNING", "current_health_score": 62.0}
-            ])
+            now = datetime.now(timezone.utc)
+            m1 = {
+                "serial_number": "CNC-204",
+                "name": "5-Axis Heavy CNC Milling Center",
+                "product_type": "M",
+                "location": "Bay 4 - Sector A",
+                "status": "HEALTHY",
+                "current_health_score": 98.0,
+                "assigned_engineer_id": engineer_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            m2 = {
+                "serial_number": "PRESS-102",
+                "name": "Hydraulic Stamping Press",
+                "product_type": "H",
+                "location": "Bay 2 - Press Bay",
+                "status": "HEALTHY",
+                "current_health_score": 95.0,
+                "assigned_engineer_id": engineer_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            m3 = {
+                "serial_number": "MOTOR-308",
+                "name": "High-Power Induction Drive Motor",
+                "product_type": "L",
+                "location": "Bay 1 - Powerhouse",
+                "status": "CRITICAL",
+                "current_health_score": 0.0,
+                "assigned_engineer_id": engineer_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            res_m = machines_col.insert_many([m1, m2, m3])
+            m1_id, m2_id, m3_id = res_m.inserted_ids
+
+            # Seed Telemetry for CNC-204
+            sensor_readings = []
+            for i in range(12):
+                t = now - timedelta(hours=(12 - i))
+                sensor_readings.append({
+                    "machine_id": m1_id,
+                    "timestamp": t,
+                    "air_temp": 298.1 + (i * 0.1),
+                    "process_temp": 308.6 + (i * 0.15),
+                    "rotational_speed": 1550.0 - (i * 2.0),
+                    "torque": 42.0 + (i * 0.3),
+                    "tool_wear": 20.0 + (i * 5.0),
+                    "created_at": t
+                })
+            # Seed Stress Telemetry for MOTOR-308
+            for i in range(12):
+                t = now - timedelta(hours=(12 - i))
+                is_fail = i >= 10
+                sensor_readings.append({
+                    "machine_id": m3_id,
+                    "timestamp": t,
+                    "air_temp": 298.0,
+                    "process_temp": 313.5 if is_fail else 310.0,
+                    "rotational_speed": 1200.0 if is_fail else 1450.0,
+                    "torque": 72.0 if is_fail else 55.0,
+                    "tool_wear": 230.0 if is_fail else 180.0,
+                    "created_at": t
+                })
+            sensors_col.insert_many(sensor_readings)
+
+            # Seed Baseline Predictions
+            pred_doc = {
+                "machine_id": m3_id,
+                "failure_probability": 0.9896,
+                "failure_prediction": True,
+                "failure_type": "Overstrain Failure (OSF)",
+                "health_score": 0.0,
+                "confidence": 0.9896,
+                "model_version": "failure-model-v1.0",
+                "feature_snapshot": {
+                    "air_temp": 298.0,
+                    "process_temp": 313.5,
+                    "rotational_speed": 1200.0,
+                    "torque": 72.0,
+                    "tool_wear": 230.0,
+                    "delta_temp": 15.5,
+                    "mechanical_power": 9047.78
+                },
+                "created_at": now
+            }
+            res_pred = preds_col.insert_one(pred_doc)
+
+            # Seed Initial Black Box Incident
+            blackbox_doc = {
+                "blackbox_code": "BB-2026-000001",
+                "machine_id": m3_id,
+                "machine_snapshot": {
+                    "name": "High-Power Induction Drive Motor",
+                    "serial_number": "MOTOR-308",
+                    "product_type": "L",
+                    "location": "Bay 1 - Powerhouse"
+                },
+                "trigger_source": "AUTOMATIC_ML_TRIGGER",
+                "failure_timestamp": now,
+                "incident_status": "OPEN",
+                "failure_summary": {
+                    "failure_predicted": True,
+                    "failure_type": "Overstrain Failure (OSF)",
+                    "failure_probability": 0.9896,
+                    "health_score_at_failure": 0.0,
+                    "trigger_prediction_id": res_pred.inserted_id
+                },
+                "telemetry_window": [
+                    {
+                        "timestamp": (now - timedelta(hours=i)).isoformat(),
+                        "air_temp": 298.0,
+                        "process_temp": 313.5 if i <= 2 else 309.0,
+                        "rotational_speed": 1200.0 if i <= 2 else 1500.0,
+                        "torque": 72.0 if i <= 2 else 45.0,
+                        "tool_wear": 230.0 if i <= 2 else 150.0,
+                        "delta_temp": 15.5 if i <= 2 else 11.0,
+                        "mechanical_power": 9047.78,
+                        "health_score": 0.0 if i <= 2 else 85.0
+                    } for i in range(12, 0, -1)
+                ],
+                "event_timeline": [
+                    {"event_type": "WINDOW_START", "timestamp": (now - timedelta(hours=24)).isoformat(), "description": "24-hour observation window opened."},
+                    {"event_type": "HEALTH_DEGRADATION", "timestamp": (now - timedelta(hours=2)).isoformat(), "description": "Machine health score dropped below 50% due to tool wear and torque load."},
+                    {"event_type": "FAILURE_DETECTED", "timestamp": now.isoformat(), "description": "XGBoost classified Overstrain Failure (OSF)."},
+                    {"event_type": "BLACKBOX_SEALED", "timestamp": now.isoformat(), "description": "Immutable incident snapshot BB-2026-000001 created."}
+                ],
+                "created_at": now,
+                "updated_at": now
+            }
+            blackbox_col.insert_one(blackbox_doc)
     except Exception as e:
         app.logger.warning(f"Initial data seed check: {e}")
 
