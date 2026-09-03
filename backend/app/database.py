@@ -38,11 +38,14 @@ class MongoManager:
                 "connectTimeoutMS": connect_timeout_ms
             }
             
-            try:
-                import certifi
-                client_kwargs["tlsCAFile"] = certifi.where()
-            except Exception as cert_err:
-                logger.debug(f"certifi load: {cert_err}")
+            if "mongodb+srv://" in mongo_uri or "mongodb.net" in mongo_uri:
+                try:
+                    import certifi
+                    client_kwargs["tlsCAFile"] = certifi.where()
+                except Exception as cert_err:
+                    logger.debug(f"certifi load: {cert_err}")
+                client_kwargs["tlsAllowInvalidCertificates"] = True
+                client_kwargs["tlsAllowInvalidHostnames"] = True
 
             cls._client = MongoClient(mongo_uri, **client_kwargs)
             cls._db = cls._client[db_name]
