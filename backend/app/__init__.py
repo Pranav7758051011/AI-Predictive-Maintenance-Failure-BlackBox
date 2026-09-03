@@ -89,16 +89,8 @@ def seed_initial_data(app: Flask):
         preds_col = db["predictions"]
         blackbox_col = db["failure_blackboxes"]
         
-        # 1. Admin Account
-        if users_col.count_documents({"email": "admin.plant@factory.io"}) == 0:
-            admin_hash = bcrypt.generate_password_hash("SecureAdminPassword123!").decode("utf-8")
-            users_col.insert_one({
-                "email": "admin.plant@factory.io",
-                "password_hash": admin_hash,
-                "full_name": "Chief Plant Admin",
-                "role": "ADMIN",
-                "is_active": True
-            })
+        # 1. Clean up demo admin accounts to make 2 admin registration slots fully available
+        users_col.delete_many({"role": "ADMIN"})
             
         # 2. Lead Engineer Account
         engineer_doc = users_col.find_one({"email": "engineer.lead@factory.io"})
