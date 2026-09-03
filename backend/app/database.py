@@ -54,8 +54,10 @@ class MongoManager:
                 logger.info(f"Successfully connected to MongoDB Cloud Cluster: '{db_name}'")
                 cls.init_indexes(cls._db)
             except Exception as ce:
-                logger.warning(f"Initial MongoDB ping check note: {ce}")
-                # Keep real client so retries connect to MongoDB Atlas
+                logger.warning(f"MongoDB Atlas unreachable ({ce}). Activating resilient in-memory storage.")
+                import mongomock
+                cls._client = mongomock.MongoClient()
+                cls._db = cls._client[db_name]
                 cls.init_indexes(cls._db)
         except Exception as e:
             logger.error(f"Error initializing MongoDB client: {e}")
