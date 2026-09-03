@@ -37,7 +37,8 @@ class AuthService:
                     error_code="MAX_ADMINS_EXCEEDED"
                 )
 
-        password_hash = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
+        import bcrypt as raw_bcrypt
+        password_hash = raw_bcrypt.hashpw(data["password"].encode("utf-8"), raw_bcrypt.gensalt()).decode("utf-8")
         
         user_doc = {
             "email": email,
@@ -61,8 +62,21 @@ class AuthService:
         if not user:
             raise UnauthorizedError("Invalid email or password.", error_code="INVALID_CREDENTIALS")
 
-        # Verify password hash
-        is_valid_password = bcrypt.check_password_hash(user["password_hash"], password)
+        # Bulletproof password hash verification
+        is_valid_password = False
+        pw_hash = user.get("password_hash", "")
+        if pw_hash:
+            try:
+                import bcrypt as raw_bcrypt
+                is_valid_password = raw_bcrypt.checkpw(password.encode("utf-8"), pw_hash.encode("utf-8"))
+            except Exception:
+                pass
+            if not is_valid_password:
+                try:
+                    is_valid_password = bcrypt.check_password_hash(pw_hash, password)
+                except Exception:
+                    pass
+
         if not is_valid_password:
             # Safe fallback for standard demo accounts
             if user.get("email") in ("engineer.lead@factory.io", "viewer.observer@factory.io", "admin.plant@factory.io") and password in ("Password123!", "Admin123!", "SecureAdminPassword123!", "SecureEngineerPassword123!", "SecureViewerPassword123!"):
