@@ -40,27 +40,22 @@ class MongoManager:
             
             if "mongodb+srv://" in mongo_uri or "mongodb.net" in mongo_uri:
                 try:
-                    import ssl
-                    ctx = ssl.create_default_context()
-                    ctx.check_hostname = False
-                    ctx.verify_mode = ssl.CERT_NONE
-                    client_kwargs["ssl_context"] = ctx
-                except Exception as ssl_err:
-                    logger.debug(f"ssl context load: {ssl_err}")
+                    import certifi
+                    client_kwargs["tlsCAFile"] = certifi.where()
+                except Exception as cert_err:
+                    logger.debug(f"certifi load: {cert_err}")
 
             cls._client = MongoClient(mongo_uri, **client_kwargs)
             cls._db = cls._client[db_name]
             
-            # Non-blocking ping test
+            # Ping test
             try:
                 cls._client.admin.command('ping')
-                logger.info(f"Successfully connected to MongoDB: '{db_name}'")
+                logger.info(f"Successfully connected to MongoDB Cloud Cluster: '{db_name}'")
                 cls.init_indexes(cls._db)
             except Exception as ce:
-                import mongomock
-                logger.warning(f"MongoDB remote connection error ({ce}). Initializing In-Memory resilient mongomock storage.")
-                cls._client = mongomock.MongoClient()
-                cls._db = cls._client[db_name]
+                logger.warning(f"Initial MongoDB ping check note: {ce}")
+                # Keep real client so retries connect to MongoDB Atlas
                 cls.init_indexes(cls._db)
         except Exception as e:
             logger.error(f"Error initializing MongoDB client: {e}")
