@@ -6,6 +6,12 @@ export const authService = {
       method: 'POST',
       body: userData
     });
+    if (data?.access_token) {
+      setTokens(data.access_token, data.refresh_token);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+    }
     return data;
   },
 
