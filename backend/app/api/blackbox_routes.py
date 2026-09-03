@@ -74,7 +74,7 @@ def generate_blackbox():
     )
 
 @blackbox_bp.route("/api/blackboxes", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def list_blackboxes():
     """
     List Failure Black Box Incidents
@@ -112,7 +112,7 @@ def list_blackboxes():
       200:
         description: Paginated Black Box incidents
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     query_params = query_schema.load(request.args.to_dict())
 
     result = blackbox_service.list_blackboxes(query_params, current_user)
@@ -125,7 +125,7 @@ def list_blackboxes():
     )
 
 @blackbox_bp.route("/api/blackboxes/<blackbox_id>", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_blackbox_by_id(blackbox_id: str):
     """
     Get Failure Black Box Details by ID
@@ -147,7 +147,7 @@ def get_blackbox_by_id(blackbox_id: str):
       404:
         description: Black Box not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     bb = blackbox_service.get_blackbox(blackbox_id, current_user)
     return success_response(
         data=bb_res_schema.dump(bb),
@@ -156,7 +156,7 @@ def get_blackbox_by_id(blackbox_id: str):
     )
 
 @blackbox_bp.route("/api/blackboxes/code/<blackbox_code>", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_blackbox_by_code(blackbox_code: str):
     """
     Get Failure Black Box Details by Code
@@ -178,7 +178,7 @@ def get_blackbox_by_code(blackbox_code: str):
       404:
         description: Black Box code not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     bb = blackbox_service.get_blackbox(blackbox_code, current_user)
     return success_response(
         data=bb_res_schema.dump(bb),
@@ -187,7 +187,7 @@ def get_blackbox_by_code(blackbox_code: str):
     )
 
 @blackbox_bp.route("/api/machines/<machine_id>/blackboxes", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine_blackboxes(machine_id: str):
     """
     Get Machine Black Box Incidents
@@ -219,7 +219,7 @@ def get_machine_blackboxes(machine_id: str):
       404:
         description: Machine not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     params = request.args.to_dict()
     params["machine_id"] = machine_id
     query_params = query_schema.load(params)
@@ -234,7 +234,7 @@ def get_machine_blackboxes(machine_id: str):
     )
 
 @blackbox_bp.route("/api/blackboxes/<blackbox_id>/replay", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_failure_replay(blackbox_id: str):
     """
     Failure Replay Time-Series Frames
@@ -256,7 +256,7 @@ def get_failure_replay(blackbox_id: str):
       404:
         description: Black Box not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     replay = blackbox_service.get_replay_frames(blackbox_id, current_user)
     return success_response(
         data=replay_res_schema.dump(replay),
@@ -265,7 +265,7 @@ def get_failure_replay(blackbox_id: str):
     )
 
 @blackbox_bp.route("/api/blackboxes/<blackbox_id>/audit", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_blackbox_audit(blackbox_id: str):
     """
     Get Failure Black Box Audit Trail
@@ -287,7 +287,7 @@ def get_blackbox_audit(blackbox_id: str):
       404:
         description: Black Box not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     page = int(request.args.get("page", 1))
     page_size = int(request.args.get("page_size", 50))
 

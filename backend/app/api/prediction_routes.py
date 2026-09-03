@@ -145,7 +145,7 @@ def create_prediction_from_latest_telemetry(machine_id: str):
     )
 
 @prediction_bp.route("/api/predictions", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def list_predictions():
     """
     List Prediction History
@@ -186,7 +186,7 @@ def list_predictions():
       200:
         description: Paginated predictions
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     query_params = query_schema.load(request.args.to_dict())
 
     result = prediction_service.list_predictions(query_params, current_user)
@@ -199,7 +199,7 @@ def list_predictions():
     )
 
 @prediction_bp.route("/api/predictions/<prediction_id>", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_prediction(prediction_id: str):
     """
     Get Prediction by ID
@@ -221,7 +221,7 @@ def get_prediction(prediction_id: str):
       404:
         description: Prediction not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     pred = prediction_service.get_prediction_by_id(prediction_id, current_user)
     return success_response(
         data=pred_res_schema.dump(pred),
@@ -230,7 +230,7 @@ def get_prediction(prediction_id: str):
     )
 
 @prediction_bp.route("/api/machines/<machine_id>/predictions", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine_predictions(machine_id: str):
     """
     Get Machine Prediction History
@@ -262,7 +262,7 @@ def get_machine_predictions(machine_id: str):
       404:
         description: Machine not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     params = request.args.to_dict()
     params["machine_id"] = machine_id
     query_params = query_schema.load(params)
@@ -277,7 +277,7 @@ def get_machine_predictions(machine_id: str):
     )
 
 @prediction_bp.route("/api/machines/<machine_id>/health", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine_health(machine_id: str):
     """
     Get Current Machine Health Score & Status
@@ -299,7 +299,7 @@ def get_machine_health(machine_id: str):
       404:
         description: Machine or prediction data not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     health_data = prediction_service.get_machine_health(machine_id, current_user)
     return success_response(
         data=health_res_schema.dump(health_data),
@@ -308,7 +308,7 @@ def get_machine_health(machine_id: str):
     )
 
 @prediction_bp.route("/api/machines/<machine_id>/risk", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine_risk(machine_id: str):
     """
     Get Machine Risk Overview
@@ -330,7 +330,7 @@ def get_machine_risk(machine_id: str):
       404:
         description: Machine or prediction data not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     health_data = prediction_service.get_machine_health(machine_id, current_user)
     return success_response(
         data=health_res_schema.dump(health_data),

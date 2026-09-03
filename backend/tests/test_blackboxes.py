@@ -100,7 +100,7 @@ def test_failure_replay_endpoint(client, admin_user, test_machine):
     ingest_url = f"/api/machines/{test_machine['id']}/sensors"
     client.post(ingest_url, json={"air_temp": 298.0, "process_temp": 308.0, "rotational_speed": 1500.0, "torque": 40.0, "tool_wear": 50.0}, headers=admin_user["headers"])
     client.post(ingest_url, json={"air_temp": 299.0, "process_temp": 310.0, "rotational_speed": 1400.0, "torque": 45.0, "tool_wear": 100.0}, headers=admin_user["headers"])
-    client.post(ingest_url, json={"air_temp": 298.0, "process_temp": 313.0, "rotational_speed": 1250.0, "torque": 68.0, "tool_wear": 215.0}, headers=admin_user["headers"])
+    client.post(ingest_url, json={"air_temp": 304.0, "process_temp": 314.0, "rotational_speed": 1150.0, "torque": 80.0, "tool_wear": 245.0}, headers=admin_user["headers"])
 
     # Predict from latest & trigger automatic black box
     pred_res = client.post(f"/api/machines/{test_machine['id']}/predictions", json={}, headers=admin_user["headers"])

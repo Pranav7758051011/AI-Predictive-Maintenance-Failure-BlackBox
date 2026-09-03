@@ -23,7 +23,7 @@ class SensorRepository(BaseRepository):
         obj_id = to_object_id(machine_id)
         doc = self.collection.find_one(
             {"machine_id": obj_id},
-            sort=[("timestamp", -1)]
+            sort=[("timestamp", -1), ("_id", -1)]
         )
         return serialize_doc(doc)
 

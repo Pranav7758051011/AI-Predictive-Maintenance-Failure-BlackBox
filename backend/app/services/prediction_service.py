@@ -24,16 +24,18 @@ class PredictionService:
         self.sensor_repo = sensor_repo or SensorRepository()
         self.ml_service = ml_service or MLService()
 
-    def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Dict[str, Any], is_write: bool = False) -> Dict[str, Any]:
+    def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Optional[Dict[str, Any]] = None, is_write: bool = False) -> Dict[str, Any]:
         """Validates machine existence and role-based permissions."""
         machine = self.machine_repo.find_by_id(machine_id)
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
 
-        user_role = current_user.get("role")
-        user_id = str(current_user.get("id"))
+        user_role = current_user.get("role") if current_user else None
+        user_id = str(current_user.get("id")) if current_user else None
 
         if is_write:
+            if not current_user:
+                raise ForbiddenError("Authentication required to trigger ML predictions.")
             if user_role == UserRole.VIEWER:
                 raise ForbiddenError("Viewers have read-only access and cannot trigger ML predictions.")
             if user_role == UserRole.ENGINEER:

@@ -263,14 +263,14 @@ class BlackBoxService:
             entity_type="FAILURE_BLACKBOX",
             entity_id=bb["id"],
             action="BLACKBOX_VIEWED",
-            actor_user_id=current_user.get("id"),
-            actor_role=current_user.get("role", "UNKNOWN"),
+            actor_user_id=current_user.get("id") if current_user else None,
+            actor_role=current_user.get("role", "ANONYMOUS") if current_user else "ANONYMOUS",
             metadata={"blackbox_code": bb["blackbox_code"]}
         )
 
         return bb
 
-    def get_replay_frames(self, blackbox_id_or_code: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
+    def get_replay_frames(self, blackbox_id_or_code: str, current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Constructs chronological time-series replay frames (telemetry + predictions) leading up to failure.
         """
@@ -313,8 +313,8 @@ class BlackBoxService:
             entity_type="FAILURE_BLACKBOX",
             entity_id=bb["id"],
             action="BLACKBOX_REPLAYED",
-            actor_user_id=current_user.get("id"),
-            actor_role=current_user.get("role", "UNKNOWN"),
+            actor_user_id=current_user.get("id") if current_user else None,
+            actor_role=current_user.get("role", "ANONYMOUS") if current_user else "ANONYMOUS",
             metadata={"blackbox_code": bb["blackbox_code"], "total_frames": len(frames)}
         )
 

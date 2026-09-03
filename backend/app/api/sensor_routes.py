@@ -184,7 +184,7 @@ def ingest_sensor_batch(machine_id: str):
     )
 
 @sensor_bp.route("/sensors/latest", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_latest_sensor_data(machine_id: str):
     """
     Get Latest Sensor Reading
@@ -206,7 +206,7 @@ def get_latest_sensor_data(machine_id: str):
       404:
         description: Machine or telemetry not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     latest = sensor_service.get_latest_telemetry(machine_id, current_user)
     
     if not latest:
@@ -223,7 +223,7 @@ def get_latest_sensor_data(machine_id: str):
     )
 
 @sensor_bp.route("/sensors", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_sensor_history(machine_id: str):
     """
     Get Sensor Telemetry History
@@ -271,7 +271,7 @@ def get_sensor_history(machine_id: str):
       404:
         description: Machine not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     query_params = history_query_schema.load(request.args.to_dict())
     
     result = sensor_service.get_telemetry_history(machine_id, query_params, current_user)
@@ -284,7 +284,7 @@ def get_sensor_history(machine_id: str):
     )
 
 @sensor_bp.route("/monitoring", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine_monitoring(machine_id: str):
     """
     Machine Real-Time Monitoring Cockpit
@@ -306,7 +306,7 @@ def get_machine_monitoring(machine_id: str):
       404:
         description: Machine not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     monitoring_data = sensor_service.get_monitoring_data(machine_id, current_user)
     
     return success_response(
