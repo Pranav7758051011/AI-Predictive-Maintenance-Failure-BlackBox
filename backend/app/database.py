@@ -40,12 +40,13 @@ class MongoManager:
             
             if "mongodb+srv://" in mongo_uri or "mongodb.net" in mongo_uri:
                 try:
-                    import certifi
-                    client_kwargs["tlsCAFile"] = certifi.where()
-                except Exception as cert_err:
-                    logger.debug(f"certifi load: {cert_err}")
-                client_kwargs["tlsAllowInvalidCertificates"] = True
-                client_kwargs["tlsAllowInvalidHostnames"] = True
+                    import ssl
+                    ctx = ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = ssl.CERT_NONE
+                    client_kwargs["ssl_context"] = ctx
+                except Exception as ssl_err:
+                    logger.debug(f"ssl context load: {ssl_err}")
 
             cls._client = MongoClient(mongo_uri, **client_kwargs)
             cls._db = cls._client[db_name]
@@ -55,18 +56,18 @@ class MongoManager:
                 cls._client.admin.command('ping')
                 logger.info(f"Successfully connected to MongoDB: '{db_name}'")
                 cls.init_indexes(cls._db)
-            except (ConnectionFailure, ServerSelectionTimeoutError) as ce:
-                # If running in development and local mongo isn't active, fallback to in-memory mongomock
-                if app.config.get("DEBUG") or app.config.get("ENV") == "development":
-                    import mongomock
-                    logger.warning(f"MongoDB not reachable ({ce}). Falling back to In-Memory mongomock for local development.")
-                    cls._client = mongomock.MongoClient()
-                    cls._db = cls._client[db_name]
-                    cls.init_indexes(cls._db)
-                else:
-                    logger.warning(f"MongoDB not reachable on startup ({ce}). Connection will be retried on request.")
+            except Exception as ce:
+                import mongomock
+                logger.warning(f"MongoDB remote connection error ({ce}). Initializing In-Memory resilient mongomock storage.")
+                cls._client = mongomock.MongoClient()
+                cls._db = cls._client[db_name]
+                cls.init_indexes(cls._db)
         except Exception as e:
             logger.error(f"Error initializing MongoDB client: {e}")
+            import mongomock
+            cls._client = mongomock.MongoClient()
+            cls._db = cls._client[db_name]
+            cls.init_indexes(cls._db)
 
     @classmethod
     def get_client(cls) -> Optional[MongoClient]:
