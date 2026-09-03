@@ -93,8 +93,8 @@ export async function apiRequest(endpoint, options = {}) {
   if (!response.ok) {
     const errorMessage = data.message || data.error || `HTTP ${response.status}: Request failed`;
     
-    // If account was removed or token is invalid, purge ghost session
-    if (response.status === 401 || data.error_code === 'USER_NOT_FOUND' || (typeof errorMessage === 'string' && errorMessage.includes('User account not found'))) {
+    // Only force logout if the profile verification endpoint /api/auth/me explicitly failed
+    if (endpoint === '/api/auth/me' && response.status === 401) {
       clearTokens();
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('auth-logout'));

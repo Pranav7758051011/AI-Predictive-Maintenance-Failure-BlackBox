@@ -15,12 +15,12 @@ class BaseConfig:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-fallback-secret-key-change-in-prod-xyz123")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-fallback-jwt-key-change-in-prod-abc456")
     
-    # JWT Expiration times
+    # JWT Expiration times (30 days access, 90 days refresh for lasting sessions)
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
-        minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "60"))
+        days=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_DAYS", "30"))
     )
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(
-        days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "30"))
+        days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "90"))
     )
     
     # MongoDB settings
