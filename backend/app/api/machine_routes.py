@@ -20,7 +20,7 @@ machine_response_schema = MachineResponseSchema()
 machine_list_query_schema = MachineListQuerySchema()
 
 @machine_bp.route("", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def list_machines():
     """
     List Industrial Machines
@@ -61,7 +61,7 @@ def list_machines():
       401:
         description: Unauthorized
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     query_params = machine_list_query_schema.load(request.args.to_dict())
     
     result = machine_service.list_machines(query_params, current_user)
@@ -75,10 +75,10 @@ def list_machines():
     )
 
 @machine_bp.route("/<id>", methods=["GET"])
-@jwt_required()
+@jwt_required(optional=True)
 def get_machine(id: str):
     """
-    Get Machine by ID
+    Get Machine Details
     ---
     tags:
       - Machines
@@ -99,7 +99,7 @@ def get_machine(id: str):
       404:
         description: Machine not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     machine = machine_service.get_machine(id, current_user)
     
     return success_response(

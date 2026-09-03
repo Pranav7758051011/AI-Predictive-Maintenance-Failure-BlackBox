@@ -54,25 +54,37 @@ def role_required(allowed_roles: Union[str, List[str]]):
         return wrapper
     return decorator
 
-def get_current_user() -> Dict[str, Any]:
+def get_current_user(optional: bool = False) -> Optional[Dict[str, Any]]:
     """
     Fetches the full database record for the currently authenticated user.
-    Raises UnauthorizedError if user not found or inactive.
+    Raises UnauthorizedError if user not found or inactive (unless optional=True).
     """
-    verify_jwt_in_request()
-    user_id = get_jwt_identity()
-    user = user_repo.find_by_id(user_id)
-    
-    # Fallback to lookup by email if ID was re-generated
-    if not user:
-        claims = get_jwt()
-        email = claims.get("email")
-        if email:
-            user = user_repo.find_by_email(email)
+    try:
+        verify_jwt_in_request(optional=optional)
+        user_id = get_jwt_identity()
+        if not user_id:
+            return None
             
-    if not user:
-        raise UnauthorizedError("User account not found or was removed", error_code="USER_NOT_FOUND")
-    if not user.get("is_active", True):
-        raise UnauthorizedError("User account is inactive. Please contact administrator.", error_code="ACCOUNT_INACTIVE")
+        user = user_repo.find_by_id(user_id)
         
-    return user
+        # Fallback to lookup by email if ID was re-generated
+        if not user:
+            claims = get_jwt()
+            email = claims.get("email")
+            if email:
+                user = user_repo.find_by_email(email)
+                
+        if not user:
+            if optional:
+                return None
+            raise UnauthorizedError("User account not found or was removed", error_code="USER_NOT_FOUND")
+        if not user.get("is_active", True):
+            if optional:
+                return None
+            raise UnauthorizedError("User account is inactive. Please contact administrator.", error_code="ACCOUNT_INACTIVE")
+            
+        return user
+    except Exception as e:
+        if optional:
+            return None
+        raise e

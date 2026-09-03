@@ -45,7 +45,7 @@ def test_auto_blackbox_creation_on_failure_prediction(client, admin_user, test_m
 
     # 2. Ingest extreme heat dissipation failure telemetry
     client.post(ingest_url, json={
-        "air_temp": 298.0, "process_temp": 313.0, "rotational_speed": 1250.0, "torque": 68.0, "tool_wear": 215.0
+        "air_temp": 304.0, "process_temp": 314.0, "rotational_speed": 1150.0, "torque": 80.0, "tool_wear": 245.0
     }, headers=admin_user["headers"])
 
     # 3. Predict from latest (triggers failure prediction & automatic black box generation)

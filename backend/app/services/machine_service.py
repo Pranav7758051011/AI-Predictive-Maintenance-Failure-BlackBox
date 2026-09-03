@@ -96,22 +96,23 @@ class MachineService:
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
 
-        # Check engineer assignment permissions
-        user_role = current_user.get("role")
-        user_id = str(current_user.get("id"))
-        
-        if user_role == UserRole.ENGINEER:
-            assigned_id = machine.get("assigned_engineer_id")
-            # If machine is assigned to someone else, reject
-            if assigned_id and str(assigned_id) != user_id:
-                raise ForbiddenError(
-                    "Access forbidden: You are only authorized to view machines assigned to you.",
-                    error_code="MACHINE_ACCESS_DENIED"
-                )
+        # Check engineer assignment permissions if authenticated as Engineer
+        if current_user:
+            user_role = current_user.get("role")
+            user_id = str(current_user.get("id"))
+            
+            if user_role == UserRole.ENGINEER:
+                assigned_id = machine.get("assigned_engineer_id")
+                # If machine is assigned to someone else, reject
+                if assigned_id and str(assigned_id) != user_id:
+                    raise ForbiddenError(
+                        "Access forbidden: You are only authorized to view machines assigned to you.",
+                        error_code="MACHINE_ACCESS_DENIED"
+                    )
 
         return self._hydrate_machine(machine)
 
-    def list_machines(self, query_params: Dict[str, Any], current_user: Dict[str, Any]) -> Dict[str, Any]:
+    def list_machines(self, query_params: Dict[str, Any], current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Lists machines with filtering, search, pagination, and role-based scoping."""
         page = query_params.get("page", 1)
         page_size = query_params.get("page_size", 20)
@@ -123,15 +124,16 @@ class MachineService:
         mongo_filter: Dict[str, Any] = {}
 
         # Role-based scoping for Engineers
-        user_role = current_user.get("role")
-        user_id = str(current_user.get("id"))
-        
-        if user_role == UserRole.ENGINEER:
-            # Engineers only see machines assigned to them or unassigned machines
-            mongo_filter["$or"] = [
-                {"assigned_engineer_id": to_object_id(user_id)},
-                {"assigned_engineer_id": None}
-            ]
+        if current_user:
+            user_role = current_user.get("role")
+            user_id = str(current_user.get("id"))
+            
+            if user_role == UserRole.ENGINEER:
+                # Engineers only see machines assigned to them or unassigned machines
+                mongo_filter["$or"] = [
+                    {"assigned_engineer_id": to_object_id(user_id)},
+                    {"assigned_engineer_id": None}
+                ]
 
         if status_filter and status_filter.upper() != "ALL":
             mongo_filter["status"] = status_filter.upper()
