@@ -58,10 +58,10 @@ def register_error_handlers(app: Flask):
 
     @app.errorhandler(PyMongoError)
     def handle_pymongo_error(e: PyMongoError):
-        """Catches database level errors without exposing stack traces."""
+        """Catches database level errors."""
         logger.error(f"Database error caught: {e}", exc_info=True)
         return error_response(
-            message="Database operation failed. Please try again later.",
+            message=f"Database operation failed: {str(e)}",
             error_code="DATABASE_ERROR",
             status_code=500
         )
