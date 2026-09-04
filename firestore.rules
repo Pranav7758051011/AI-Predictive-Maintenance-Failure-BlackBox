@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Industrial Machines collection
+    match /machines/{machineId} {
+      allow read, write: if true;
+    }
+    
+    // Telemetry stream
+    match /telemetry/{telemetryId} {
+      allow read, write: if true;
+    }
+    
+    // Failure Black Box incidents & audit logs
+    match /blackboxes/{blackboxId} {
+      allow read, write: if true;
+    }
+    
+    // Predictions collection
+    match /predictions/{predictionId} {
+      allow read, write: if true;
+    }
+  }
+}
