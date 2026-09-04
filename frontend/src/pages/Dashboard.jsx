@@ -244,7 +244,7 @@ export default function Dashboard() {
 
           {/* Equipment Health Table */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-industrial-text">Equipment Health Matrix (MongoDB Fleet)</h2>
+            <h2 className="text-base font-bold text-industrial-text">Equipment Health Matrix (Fleet Database)</h2>
             <DataTable machines={machines} onSelectMachine={setActiveMachineId} activeMachineId={activeMachineId} />
           </div>
 

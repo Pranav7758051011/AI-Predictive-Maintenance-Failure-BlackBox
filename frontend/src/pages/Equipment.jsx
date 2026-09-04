@@ -95,7 +95,7 @@ export default function Equipment() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-industrial-border shadow-sm">
             <div>
               <h1 className="text-2xl font-extrabold text-industrial-text">Industrial Equipment Fleet</h1>
-              <p className="text-xs text-industrial-subtext">Catalog of monitored physical industrial assets in MongoDB</p>
+              <p className="text-xs text-industrial-subtext">Catalog of monitored physical industrial assets in Cloud Firestore</p>
             </div>
 
             {/* Actions & Search */}

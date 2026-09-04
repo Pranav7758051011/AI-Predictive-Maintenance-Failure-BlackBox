@@ -1,16 +1,24 @@
 /**
  * INDUSENSE AI - Machine Fleet Service Adapter
- * Routed to Firebase & Realtime Firestore Layer
+ * Routed to Firebase & Realtime Cloud Firestore Layer
  */
 
 import { firebaseMachineService } from '../firebase/machineService';
 
 export const machineService = {
+  async getMachines(params = {}) {
+    return await firebaseMachineService.listMachines(params);
+  },
+
   async listMachines(params = {}) {
     return await firebaseMachineService.listMachines(params);
   },
 
   async getMachineById(id) {
+    return await firebaseMachineService.getMachineById(id);
+  },
+
+  async getMachine(id) {
     return await firebaseMachineService.getMachineById(id);
   },
 

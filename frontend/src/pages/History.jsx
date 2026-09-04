@@ -75,7 +75,7 @@ export default function History() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-industrial-border shadow-sm">
             <div>
               <h1 className="text-2xl font-extrabold text-industrial-text">ML Prediction History Ledger</h1>
-              <p className="text-xs text-industrial-subtext">Historical record of machine learning model inferences stored in MongoDB predictions collection</p>
+              <p className="text-xs text-industrial-subtext">Historical record of machine learning model inferences stored in Cloud Firestore</p>
             </div>
 
             {/* Search & Filter */}

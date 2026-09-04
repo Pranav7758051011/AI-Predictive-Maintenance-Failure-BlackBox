@@ -250,7 +250,7 @@ export default function Home() {
                 How INDUSENSE AI Connects Telemetry to Black Box
               </h2>
               <p className="text-sm sm:text-base text-industrial-subtext">
-                From raw physical sensor telemetry in MongoDB to XGBoost inference and interactive time-series replay.
+                From raw physical sensor telemetry in Cloud Firestore to XGBoost inference and interactive time-series replay.
               </p>
             </motion.div>
 

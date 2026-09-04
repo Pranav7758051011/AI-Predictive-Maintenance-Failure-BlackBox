@@ -84,7 +84,7 @@ export default function Anomalies() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-industrial-border shadow-sm">
             <div>
               <h1 className="text-2xl font-extrabold text-industrial-text">ML Anomaly & Degradation Analysis</h1>
-              <p className="text-xs text-industrial-subtext">Active anomaly events surfaced from MongoDB predictions and sealed Failure Black Boxes</p>
+              <p className="text-xs text-industrial-subtext">Active anomaly events surfaced from Cloud Firestore predictions and sealed Failure Black Boxes</p>
             </div>
 
             <div className="flex items-center gap-3">

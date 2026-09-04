@@ -195,7 +195,7 @@ export default function BlackBoxes() {
           {loading ? (
             <div className="bg-white p-12 rounded-xl border border-industrial-border text-center space-y-3">
               <FiRefreshCw className="animate-spin text-3xl text-steel-blue mx-auto" />
-              <p className="text-sm font-semibold text-industrial-subtext">Loading Failure Black Box incidents from MongoDB...</p>
+              <p className="text-sm font-semibold text-industrial-subtext">Loading Failure Black Box incidents from Cloud Firestore...</p>
             </div>
           ) : error ? (
             <div className="bg-red-50 p-6 rounded-xl border border-red-200 text-red-800 text-sm flex items-center gap-3">

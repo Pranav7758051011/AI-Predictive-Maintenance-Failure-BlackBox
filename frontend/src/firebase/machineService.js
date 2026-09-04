@@ -106,6 +106,14 @@ function seedLocalFleetIfEmpty() {
 }
 
 export const firebaseMachineService = {
+  async getMachines(params = {}) {
+    return await this.listMachines(params);
+  },
+
+  async getMachine(id) {
+    return await this.getMachineById(id);
+  },
+
   /**
    * Retrieves list of machines with search, status, and product_type filters.
    */

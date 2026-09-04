@@ -82,6 +82,51 @@ function seedLocalBlackBoxesIfEmpty() {
 }
 
 export const firebaseBlackboxService = {
+  async getBlackBoxes(params = {}) {
+    return await this.listBlackBoxes(params);
+  },
+
+  async getReplayFrames(id) {
+    return await this.getBlackBoxReplay(id);
+  },
+
+  async updateStatus(id, newStatus) {
+    return await this.updateBlackBoxStatus(id, newStatus);
+  },
+
+  /**
+   * Simulates an intentional failure incident and seals a Failure Black Box snapshot.
+   */
+  async simulateFailureBlackBox(machineId) {
+    const machine = (localStore.getCollection('machines') || []).find(m => m.id === machineId) || {
+      id: machineId || 'mach-sim-01',
+      name: 'High-Speed Milling Station',
+      serial_number: 'CNC-SIM-01',
+      product_type: 'M',
+      location: 'Bay 3, Sector B'
+    };
+
+    const simulatedPrediction = {
+      failure_prediction: true,
+      failure_type: 'Overstrain Failure (OSF)',
+      failure_probability: 0.992,
+      health_score: 8.5,
+      dominant_factor: 'Severe tool wear overload under peak torque stress (14,800 min·Nm)'
+    };
+
+    const simulatedHistory = Array.from({ length: 15 }, (_, i) => ({
+      timestamp: new Date(Date.now() - (15 - i) * 60000).toISOString(),
+      air_temp: 298.5 + i * 0.3,
+      process_temp: 308.2 + i * 0.8,
+      rotational_speed: 1520 - i * 25,
+      torque: 42 + i * 2.8,
+      tool_wear: 160 + i * 7,
+      health_score: Math.max(5, 95 - i * 6)
+    }));
+
+    return await this.generateBlackBox(machine, simulatedPrediction, simulatedHistory, 'MANUAL_SIMULATION_TRIGGER');
+  },
+
   /**
    * Captures and seals a new 24-hour Failure Black Box incident snapshot.
    */

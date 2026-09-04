@@ -14,7 +14,7 @@ export function useSensorSimulation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load real machines from MongoDB
+  // Load real machines from Cloud Firestore
   const fetchMachines = useCallback(async () => {
     try {
       const res = await machineService.getMachines();
@@ -24,7 +24,7 @@ export function useSensorSimulation() {
         setActiveMachineId((prev) => prev || items[0].id);
       }
     } catch (err) {
-      setError(err.message || 'Failed to fetch machines from backend.');
+      setError(err.message || 'Failed to fetch machines from fleet database.');
     } finally {
       setLoading(false);
     }

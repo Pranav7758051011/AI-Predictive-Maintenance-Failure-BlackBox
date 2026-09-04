@@ -170,7 +170,7 @@ export default function Sensors() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-industrial-border shadow-sm">
             <div>
               <h1 className="text-2xl font-extrabold text-industrial-text">Live Sensor Telemetry & Analytics</h1>
-              <p className="text-xs text-industrial-subtext">Multi-channel physical telemetry streams from MongoDB time-series collection</p>
+              <p className="text-xs text-industrial-subtext">Multi-channel physical telemetry streams from Cloud Firestore time-series</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -195,7 +195,7 @@ export default function Sensors() {
                 onClick={handleInjectSample}
                 disabled={injecting || !activeId}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold transition shadow-sm disabled:opacity-50 cursor-pointer"
-                title="Inject a physical sensor sample into MongoDB"
+                title="Inject a physical sensor sample into Cloud Firestore"
               >
                 <FiZap className={injecting ? 'animate-spin' : ''} />
                 <span>{injecting ? 'Recording...' : 'Inject Reading'}</span>
