@@ -7,38 +7,40 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ''
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA_5rWq3RpHfrE70yJcbV-sNI5U1Ve41X0",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ai-predictive-maintenanc-ad8eb.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ai-predictive-maintenanc-ad8eb",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ai-predictive-maintenanc-ad8eb.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "647565912387",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:647565912387:web:94643ffad7b40bc7e8e7f6",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-ZN88M6EJER"
 };
 
-export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey &&
-  firebaseConfig.projectId &&
-  firebaseConfig.apiKey !== 'YOUR_FIREBASE_API_KEY'
-);
+export const isFirebaseConfigured = true;
 
 let app = null;
 let auth = null;
 let db = null;
+let analytics = null;
 
-if (isFirebaseConfigured) {
-  try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-    console.info('[INDUSENSE AI] Connected to live Cloud Firestore & Firebase Auth project:', firebaseConfig.projectId);
-  } catch (err) {
-    console.warn('[INDUSENSE AI] Firebase initialization notice:', err.message);
+try {
+  app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+  if (typeof window !== 'undefined') {
+    isSupported().then(yes => {
+      if (yes) analytics = getAnalytics(app);
+    }).catch(() => {});
   }
+  console.info('[INDUSENSE AI] Connected to live Cloud Firestore & Firebase Auth project:', firebaseConfig.projectId);
+} catch (err) {
+  console.warn('[INDUSENSE AI] Firebase initialization notice:', err.message);
 }
 
-export { app, auth, db };
+export { app, auth, db, analytics };
 
 // Local Reactive Storage Layer (BroadcastChannel + LocalStorage for multi-tab real-time sync)
 class LocalRealtimeStore {
