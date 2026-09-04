@@ -93,7 +93,7 @@ export default function Register() {
           {/* Interactive Role Selector */}
           <div className="mb-5">
             <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
-              Assign Account Role (Saved in Cloud Firestore)
+              Assign Account Role
             </label>
             <div className="grid grid-cols-3 gap-2">
               {roleOptions.map((opt) => {
@@ -117,27 +117,6 @@ export default function Register() {
                 );
               })}
             </div>
-          </div>
-
-          {/* Google Sign-Up Button */}
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={handleGoogleSignUp}
-              disabled={googleLoading || loading}
-              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-sm shadow-sm transition duration-200 hover:border-slate-400 disabled:opacity-50"
-            >
-              <FcGoogle className="text-xl" />
-              <span>{googleLoading ? 'Connecting to Google...' : `Sign Up with Google (${role})`}</span>
-            </button>
-          </div>
-
-          <div className="relative my-4 flex items-center justify-center">
-            <div className="border-t border-slate-200 w-full"></div>
-            <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              or register with email
-            </span>
-            <div className="border-t border-slate-200 w-full"></div>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -202,17 +181,33 @@ export default function Register() {
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="relative my-4 flex items-center justify-center">
+            <div className="border-t border-slate-200 w-full"></div>
+            <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              or continue with
+            </span>
+            <div className="border-t border-slate-200 w-full"></div>
+          </div>
+
+          {/* Google Sign-Up Button (Downside) */}
+          <div>
+            <button
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={googleLoading || loading}
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-sm shadow-sm transition duration-200 hover:border-slate-400 disabled:opacity-50"
+            >
+              <FcGoogle className="text-xl" />
+              <span>{googleLoading ? 'Connecting to Google...' : `Sign Up with Google (${role})`}</span>
+            </button>
+          </div>
+
           <div className="mt-5 text-center text-xs text-industrial-subtext">
             Already have an account?{' '}
             <Link to="/login" className="font-bold text-steel-blue hover:text-steel-blue-dark underline">
               Sign In
             </Link>
-          </div>
-
-          <div className="mt-4 pt-3 text-center border-t border-slate-100">
-            <span className="text-[10px] text-slate-400 font-medium">
-              🔥 Powered by Cloud Firestore & Firebase Auth
-            </span>
           </div>
         </div>
       </div>
