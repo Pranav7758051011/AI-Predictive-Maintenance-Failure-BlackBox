@@ -85,12 +85,12 @@ export function AuthProvider({ children }) {
     setToken(null);
   };
 
-  const role = user?.role || 'CLIENT';
+  const role = user?.role || 'ENGINEER';
   const isAdmin = role === 'ADMIN';
   const isEngineer = role === 'ENGINEER';
   const isClient = role === 'CLIENT' || role === 'VIEWER';
   const isViewer = isClient;
-  const canWrite = isAdmin || isEngineer;
+  const canWrite = true; // Full interactive control enabled for all signed-in accounts
 
   return (
     <AuthContext.Provider

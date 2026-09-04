@@ -116,26 +116,15 @@ class MachineService:
         return self._hydrate_machine(created)
 
     def get_machine(self, machine_id: str, current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Retrieves machine by ID with permission checks."""
+        """Retrieves machine by ID."""
         machine = self.machine_repo.find_by_id(machine_id)
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
 
-        if current_user:
-            user_role = current_user.get("role")
-            user_id = str(current_user.get("id"))
-            if user_role == UserRole.ENGINEER:
-                assigned_id = machine.get("assigned_engineer_id")
-                if assigned_id and str(assigned_id) != user_id:
-                    raise ForbiddenError(
-                        "Access forbidden: You are only authorized to view machines assigned to you.",
-                        error_code="MACHINE_ACCESS_DENIED"
-                    )
-
         return self._hydrate_machine(machine)
 
     def list_machines(self, query_params: Dict[str, Any], current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Lists machines with filtering, search, pagination, and role-based scoping."""
+        """Lists machines with filtering, search, pagination, and plant fleet visibility."""
         page = query_params.get("page", 1)
         page_size = query_params.get("page_size", 20)
         status_filter = query_params.get("status")
@@ -144,13 +133,6 @@ class MachineService:
         search_query = query_params.get("search")
 
         mongo_filter: Dict[str, Any] = {}
-        user_role = current_user.get("role") if current_user else None
-
-        if current_user and user_role == UserRole.ENGINEER:
-            mongo_filter["$or"] = [
-                {"assigned_engineer_id": to_object_id(current_user.get("id"))},
-                {"assigned_engineer_id": None}
-            ]
 
         if status_filter and status_filter.upper() != "ALL":
             mongo_filter["status"] = status_filter.upper()
@@ -158,7 +140,7 @@ class MachineService:
         if type_filter and type_filter.upper() != "ALL":
             mongo_filter["product_type"] = type_filter.upper()
 
-        if eng_filter and user_role != UserRole.ENGINEER:
+        if eng_filter:
             if eng_filter.lower() == "unassigned":
                 mongo_filter["assigned_engineer_id"] = None
             else:

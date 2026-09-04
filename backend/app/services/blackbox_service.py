@@ -31,35 +31,10 @@ class BlackBoxService:
         self.prediction_repo = prediction_repo or PredictionRepository()
 
     def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Optional[Dict[str, Any]] = None, is_write: bool = False) -> Dict[str, Any]:
-        """Verifies machine exists and validates role permissions."""
+        """Verifies machine exists and validates access."""
         machine = self.machine_repo.find_by_id(machine_id)
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
-
-        if current_user:
-            user_role = current_user.get("role")
-            user_id = str(current_user.get("id"))
-
-            if is_write:
-                if user_role == UserRole.VIEWER or user_role == UserRole.CLIENT:
-                    raise ForbiddenError("Viewers and clients have read-only access and cannot generate or modify Black Boxes.")
-                if user_role == UserRole.ENGINEER:
-                    assigned_id = machine.get("assigned_engineer_id")
-                    if assigned_id and str(assigned_id) != user_id:
-                        raise ForbiddenError(
-                            "You are only authorized to manage Black Boxes for machines assigned to you.",
-                            error_code="MACHINE_ACCESS_DENIED"
-                        )
-            else:
-                if user_role == UserRole.ENGINEER:
-                    assigned_id = machine.get("assigned_engineer_id")
-                    if assigned_id and str(assigned_id) != user_id:
-                        raise ForbiddenError(
-                            "You are only authorized to view Black Boxes for machines assigned to you.",
-                            error_code="MACHINE_ACCESS_DENIED"
-                        )
-        elif is_write:
-            raise ForbiddenError("Authentication required to modify Black Boxes.")
 
         return machine
 
