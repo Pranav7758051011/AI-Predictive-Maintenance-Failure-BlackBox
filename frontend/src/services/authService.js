@@ -1,6 +1,6 @@
 /**
  * INDUSENSE AI - Authentication Service Adapter
- * Routed to Firebase Authentication Layer
+ * Routed to Cloud Firestore & Firebase Authentication
  */
 
 import { firebaseAuthService } from '../firebase/authService';
@@ -12,6 +12,14 @@ export const authService = {
 
   async login(email, password, role) {
     return await firebaseAuthService.login(email, password, role);
+  },
+
+  async signInWithGoogle(role) {
+    return await firebaseAuthService.signInWithGoogle(role);
+  },
+
+  async resetPassword(email) {
+    return await firebaseAuthService.resetPassword(email);
   },
 
   async logout() {
@@ -28,6 +36,10 @@ export const authService = {
 
   async getProfile() {
     return await firebaseAuthService.getCurrentUser();
+  },
+
+  async getAllUsers() {
+    return await firebaseAuthService.getAllUsers();
   },
 
   async updateProfile(profileData) {

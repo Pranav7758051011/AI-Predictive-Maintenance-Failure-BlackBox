@@ -88,10 +88,14 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 transition"
+                  className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700 transition shadow-sm"
                   title="Account Settings"
                 >
-                  <FiUser className="text-sm" />
+                  {user?.photo_url ? (
+                    <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <FiUser className="text-sm" />
+                  )}
                 </button>
 
                 {showMenu && (

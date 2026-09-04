@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
+import { firebaseAuthService } from '../firebase/authService';
 import { getAccessToken, clearTokens } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -20,7 +21,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(getAccessToken);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Verify and hydrate current user session from Flask backend
+  // Verify and hydrate current user session from Firestore
   const checkAuth = useCallback(async () => {
     const currentToken = getAccessToken();
     if (!currentToken) {
@@ -32,14 +33,13 @@ export function AuthProvider({ children }) {
 
     try {
       const userData = await authService.getCurrentUser();
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setToken(currentToken);
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setToken(currentToken);
+      }
     } catch (err) {
-      console.warn('Session verification failed, logging out:', err.message);
-      clearTokens();
-      setUser(null);
-      setToken(null);
+      console.warn('Firestore session verification failed:', err.message);
     } finally {
       setIsLoading(false);
     }
@@ -47,13 +47,26 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkAuth();
-    
+
+    // Subscribe to live Firebase Auth state changes
+    const unsubscribe = firebaseAuthService.subscribeToAuth((fbUser, fbToken) => {
+      if (fbUser && fbToken) {
+        setUser(fbUser);
+        setToken(fbToken);
+      }
+      setIsLoading(false);
+    });
+
     const handleForceLogout = () => {
       setUser(null);
       setToken(null);
     };
     window.addEventListener('auth-logout', handleForceLogout);
-    return () => window.removeEventListener('auth-logout', handleForceLogout);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('auth-logout', handleForceLogout);
+    };
   }, [checkAuth]);
 
   const login = async (email, password, role) => {
@@ -73,14 +86,35 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const signInWithGoogle = async (role) => {
+    const res = await authService.signInWithGoogle(role);
+    if (res?.user && res?.access_token) {
+      setUser(res.user);
+      setToken(res.access_token);
+    }
+    return res;
+  };
+
+  const resetPassword = async (email) => {
+    return await authService.resetPassword(email);
+  };
+
+  const updateProfile = async (profileData) => {
+    const updated = await authService.updateProfile(profileData);
+    setUser(updated);
+    return updated;
+  };
+
   const logout = async () => {
     await authService.logout();
+    clearTokens();
     setUser(null);
     setToken(null);
   };
 
   const deleteAccount = async () => {
     await authService.deleteAccount();
+    clearTokens();
     setUser(null);
     setToken(null);
   };
@@ -107,6 +141,9 @@ export function AuthProvider({ children }) {
         isLoading,
         login,
         register,
+        signInWithGoogle,
+        resetPassword,
+        updateProfile,
         logout,
         deleteAccount,
         checkAuth
