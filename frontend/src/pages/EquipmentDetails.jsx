@@ -51,8 +51,8 @@ export default function EquipmentDetails() {
   const [torque, setTorque] = useState(42.0);
   const [toolWear, setToolWear] = useState(20);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (initial = false) => {
+    if (initial) setLoading(true);
     setError(null);
     try {
       const [machRes, telRes, histRes, predRes, bbRes] = await Promise.allSettled([
@@ -73,11 +73,13 @@ export default function EquipmentDetails() {
 
       if (telRes.status === 'fulfilled' && telRes.value) {
         setLatestTelemetry(telRes.value);
-        setAirTemp(telRes.value.air_temp || 298.1);
-        setProcessTemp(telRes.value.process_temp || 308.6);
-        setSpeed(telRes.value.rotational_speed || 1550);
-        setTorque(telRes.value.torque || 42.0);
-        setToolWear(telRes.value.tool_wear || 20);
+        if (initial) {
+          setAirTemp(telRes.value.air_temp || 298.1);
+          setProcessTemp(telRes.value.process_temp || 308.6);
+          setSpeed(telRes.value.rotational_speed || 1550);
+          setTorque(telRes.value.torque || 42.0);
+          setToolWear(telRes.value.tool_wear || 20);
+        }
       }
 
       if (histRes.status === 'fulfilled') {
@@ -94,13 +96,47 @@ export default function EquipmentDetails() {
     } catch (err) {
       setError(err.message || 'Failed to load equipment details.');
     } finally {
-      setLoading(false);
+      if (initial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadData(true);
   }, [id]);
+
+  const applyPreset = (preset) => {
+    if (preset === 'NOMINAL') {
+      setAirTemp(298.1);
+      setProcessTemp(308.6);
+      setSpeed(1550);
+      setTorque(42.0);
+      setToolWear(20);
+    } else if (preset === 'HDF') {
+      setAirTemp(303.0);
+      setProcessTemp(311.5);
+      setSpeed(1350);
+      setTorque(50.0);
+      setToolWear(80);
+    } else if (preset === 'PWF') {
+      setAirTemp(299.0);
+      setProcessTemp(310.0);
+      setSpeed(1150);
+      setTorque(76.0);
+      setToolWear(110);
+    } else if (preset === 'OSF') {
+      setAirTemp(300.0);
+      setProcessTemp(311.0);
+      setSpeed(1250);
+      setTorque(68.0);
+      setToolWear(220);
+    } else if (preset === 'TWF') {
+      setAirTemp(298.0);
+      setProcessTemp(309.0);
+      setSpeed(1520);
+      setTorque(45.0);
+      setToolWear(245);
+    }
+  };
 
   const handleRunPrediction = async (e) => {
     e?.preventDefault();
@@ -109,23 +145,37 @@ export default function EquipmentDetails() {
     setPredSuccess('');
     setPredError('');
 
+    const currentData = {
+      air_temp: Number(airTemp),
+      process_temp: Number(processTemp),
+      rotational_speed: Number(speed),
+      torque: Number(torque),
+      tool_wear: Number(toolWear)
+    };
+
     try {
-      // 1. Ingest updated telemetry values to Flask
-      await sensorService.ingestTelemetry(id, {
-        air_temp: Number(airTemp),
-        process_temp: Number(processTemp),
-        rotational_speed: Number(speed),
-        torque: Number(torque),
-        tool_wear: Number(toolWear)
-      });
-
-      // 2. Run real XGBoost prediction
-      const pred = await predictionService.predictFromLatest(id);
+      // 1. Ingest updated telemetry values to Flask backend
+      const ingested = await sensorService.ingestTelemetry(id, currentData);
+      
+      // 2. Run real XGBoost prediction on the exact telemetry
+      const pred = await predictionService.predictFromTelemetry(id, currentData);
+      
+      // 3. Immediately update UI state with response
+      const updatedTelemetry = ingested || { ...currentData, timestamp: new Date().toISOString() };
+      setLatestTelemetry(updatedTelemetry);
       setLatestPrediction(pred);
-      setPredSuccess(`ML inference executed (${pred.failure_prediction ? 'CRITICAL FAILURE TRIGGERED' : 'NOMINAL CONDITION'}).`);
+      setPredSuccess(
+        `ML inference executed: ${pred.failure_prediction ? '⚠️ CRITICAL FAILURE TRIGGERED (' + (pred.failure_type || 'FAILURE') + ')' : '✅ NOMINAL HEALTHY CONDITION'} (Health: ${Math.round(pred.health_score || 0)}%)`
+      );
 
-      // Refresh data
-      await loadData();
+      // 4. Prepend to history for real-time chart update
+      setHistoryTelemetry(prev => [updatedTelemetry, ...prev.slice(0, 19)]);
+
+      // 5. Refresh blackbox list if an incident was generated
+      const bbRes = await blackboxService.getMachineBlackBoxes(id, { page_size: 5 });
+      if (bbRes?.items) {
+        setBlackboxes(bbRes.items);
+      }
     } catch (err) {
       setPredError(err.message || 'Prediction execution failed.');
     } finally {
@@ -266,49 +316,114 @@ export default function EquipmentDetails() {
               <Machine3DViewer machineData={{
                 ...machine,
                 health: currentHealth,
-                temperature: Math.round((latestTelemetry?.process_temp || 308.6) - 273.15),
-                vibration: ((latestTelemetry?.torque || 42) / 15.0).toFixed(1),
-                pressure: ((latestTelemetry?.rotational_speed || 1550) / 300.0).toFixed(1),
-                current: ((latestTelemetry?.tool_wear || 20) / 10.0 + 10).toFixed(1)
+                temperature: Math.round((Number(processTemp) || 308.6) - 273.15),
+                vibration: ((Number(torque) || 42) / 15.0).toFixed(1),
+                pressure: ((Number(speed) || 1550) / 300.0).toFixed(1),
+                current: ((Number(toolWear) || 20) / 10.0 + 10).toFixed(1)
               }} height="h-[480px]" />
             </div>
 
             {/* Right Health & Telemetry Injection (5 Cols) */}
-            <div className="lg:col-span-5 industrial-card p-6 space-y-5 flex flex-col justify-between">
+            <div className="lg:col-span-5 industrial-card p-6 space-y-4 flex flex-col justify-between">
               <div>
-                <div className="pb-3 border-b border-industrial-border">
+                <div className="pb-2 border-b border-industrial-border">
                   <h3 className="text-base font-bold text-industrial-text">Machine Condition & Diagnostics</h3>
-                  <p className="text-xs text-industrial-subtext">Authoritative XGBoost Classification & Condition Assessment</p>
+                  <p className="text-xs text-industrial-subtext">Authoritative XGBoost Classification & Stress Testing</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 my-4">
-                  <div className="bg-slate-50 p-3 rounded border border-slate-200 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Classified Failure</span>
-                    <span className="font-extrabold text-red-600 text-sm">
-                      {latestPrediction?.failure_type || 'NO_FAILURE'}
+                <div className="grid grid-cols-2 gap-2.5 my-3">
+                  <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Classified Condition</span>
+                    <span className={`font-extrabold text-sm ${latestPrediction?.failure_prediction ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {latestPrediction?.failure_type || 'No Failure'}
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 p-3 rounded border border-slate-200 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Remaining Useful Life</span>
-                    <span className="font-medium text-slate-500 text-xs">
-                      RUL: Not available
+                  <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Health Index</span>
+                    <span className="font-extrabold text-steel-blue text-sm font-mono">
+                      {Math.round(currentHealth)} / 100
                     </span>
                   </div>
                 </div>
 
-                {/* Telemetry Injection Slider Controls */}
-                <form onSubmit={handleRunPrediction} className="space-y-3 pt-2">
+                {/* Quick Stress Failure Presets */}
+                <div className="space-y-1.5 pb-2 border-b border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">1-Click Failure Stress Presets</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('NOMINAL')}
+                      className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded border border-emerald-200 transition"
+                    >
+                      🌱 Healthy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('HDF')}
+                      className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 text-[11px] font-bold rounded border border-amber-200 transition"
+                      title="Heat Dissipation Failure (High Process Temp vs Air Temp)"
+                    >
+                      🔥 Thermal (HDF)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('PWF')}
+                      className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-bold rounded border border-purple-200 transition"
+                      title="Power Failure (Extreme Torque Load)"
+                    >
+                      ⚡ Power (PWF)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('OSF')}
+                      className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold rounded border border-rose-200 transition"
+                      title="Overstrain Failure (Torque + Tool Wear)"
+                    >
+                      ⚙️ Overstrain (OSF)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('TWF')}
+                      className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-bold rounded border border-red-200 transition"
+                      title="Tool Wear Failure (>240 min wear)"
+                    >
+                      🔪 Tool Wear (TWF)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Telemetry Injection 5-Channel Slider Controls */}
+                <form onSubmit={handleRunPrediction} className="space-y-2.5 pt-2">
                   <div className="flex items-center justify-between text-xs font-bold text-steel-blue">
-                    <span>Live Sensor Control & Stress Injection</span>
+                    <span>Live 5-Channel Sensor Controls</span>
                     <FiSliders />
                   </div>
 
                   <div className="space-y-2 text-xs">
+                    {/* Air Temperature */}
                     <div>
                       <div className="flex justify-between text-[11px] font-mono text-slate-600">
-                        <span>Process Temp: <strong>{processTemp} K</strong></span>
-                        <span className="text-slate-400">Nominal: ~308K</span>
+                        <span>Air Temp: <strong>{airTemp} K</strong> ({(airTemp - 273.15).toFixed(1)}°C)</span>
+                        <span className="text-slate-400">Nominal: ~298.1K</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="293"
+                        max="315"
+                        step="0.1"
+                        disabled={!canWrite}
+                        value={airTemp}
+                        onChange={(e) => setAirTemp(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* Process Temperature */}
+                    <div>
+                      <div className="flex justify-between text-[11px] font-mono text-slate-600">
+                        <span>Process Temp: <strong>{processTemp} K</strong> ({(processTemp - 273.15).toFixed(1)}°C)</span>
+                        <span className="text-slate-400">Nominal: ~308.6K</span>
                       </div>
                       <input
                         type="range"
@@ -317,11 +432,30 @@ export default function EquipmentDetails() {
                         step="0.1"
                         disabled={!canWrite}
                         value={processTemp}
-                        onChange={(e) => setProcessTemp(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                        onChange={(e) => setProcessTemp(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50"
                       />
                     </div>
 
+                    {/* Rotational Speed */}
+                    <div>
+                      <div className="flex justify-between text-[11px] font-mono text-slate-600">
+                        <span>Rotational Speed: <strong>{speed} RPM</strong></span>
+                        <span className="text-slate-400">Nominal: ~1550 RPM</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1000"
+                        max="3000"
+                        step="10"
+                        disabled={!canWrite}
+                        value={speed}
+                        onChange={(e) => setSpeed(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* Torque */}
                     <div>
                       <div className="flex justify-between text-[11px] font-mono text-slate-600">
                         <span>Torque: <strong>{torque} Nm</strong></span>
@@ -334,11 +468,12 @@ export default function EquipmentDetails() {
                         step="0.5"
                         disabled={!canWrite}
                         value={torque}
-                        onChange={(e) => setTorque(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50 disabled:cursor-not-allowed"
+                        onChange={(e) => setTorque(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-steel-blue disabled:opacity-50"
                       />
                     </div>
 
+                    {/* Tool Wear */}
                     <div>
                       <div className="flex justify-between text-[11px] font-mono text-slate-600">
                         <span>Tool Wear: <strong>{toolWear} min</strong></span>
@@ -351,8 +486,8 @@ export default function EquipmentDetails() {
                         step="1"
                         disabled={!canWrite}
                         value={toolWear}
-                        onChange={(e) => setToolWear(e.target.value)}
-                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-industrial-orange disabled:opacity-50 disabled:cursor-not-allowed"
+                        onChange={(e) => setToolWear(Number(e.target.value))}
+                        className="w-full h-1.5 bg-slate-200 rounded appearance-none cursor-pointer accent-industrial-orange disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -361,20 +496,20 @@ export default function EquipmentDetails() {
                     <button
                       type="submit"
                       disabled={predicting}
-                      className="w-full mt-3 py-2.5 bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm hover:shadow-glow-orange transition flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full mt-2 py-2.5 bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm hover:shadow-glow-orange transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       <FiPlay className={predicting ? 'animate-spin' : ''} />
-                      <span>{predicting ? 'Evaluating ML Model...' : 'Ingest & Run Prediction'}</span>
+                      <span>{predicting ? 'Evaluating ML Model...' : '⚡ Ingest & Run Prediction'}</span>
                     </button>
                   ) : (
-                    <div className="w-full mt-3 py-2 px-3 bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold rounded-lg text-center">
+                    <div className="w-full mt-2 py-2 px-3 bg-slate-100 border border-slate-200 text-slate-500 text-xs font-bold rounded-lg text-center">
                       Client View Mode: Telemetry & Ingestion is Read-Only
                     </div>
                   )}
                 </form>
               </div>
 
-              <div className="pt-3 border-t border-industrial-border text-xs text-industrial-subtext flex justify-between">
+              <div className="pt-2.5 border-t border-industrial-border text-xs text-industrial-subtext flex justify-between">
                 <span>Assigned: <strong className="text-industrial-text">{machine.assigned_engineer?.full_name || 'Unassigned'}</strong></span>
                 <span className="font-mono">{machine.product_type} Grade</span>
               </div>
