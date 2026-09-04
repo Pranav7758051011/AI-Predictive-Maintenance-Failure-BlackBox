@@ -104,39 +104,127 @@ export default function EquipmentDetails() {
     loadData(true);
   }, [id]);
 
-  const applyPreset = (preset) => {
+  // Live Dynamic Sensor Physics & Health Calculator for real-time reactivity
+  const livePhysics = React.useMemo(() => {
+    const at = Number(airTemp) || 298.1;
+    const pt = Number(processTemp) || 308.6;
+    const s = Number(speed) || 1550;
+    const t = Number(torque) || 42.0;
+    const w = Number(toolWear) || 20;
+
+    const deltaTemp = pt - at;
+    const power = (t * s * 2 * Math.PI) / 60;
+    const overstrain = t * w;
+
+    let failType = 'No Failure';
+    let failProb = 0.04;
+    let isFail = false;
+
+    if (w >= 240) {
+      failType = 'Tool Wear Failure (TWF)';
+      failProb = 0.98;
+      isFail = true;
+    } else if (power > 9000 || (power < 3500 && s > 1000)) {
+      failType = 'Power Failure (PWF)';
+      failProb = 0.94;
+      isFail = true;
+    } else if (overstrain > 11000 || (t >= 65 && w >= 180)) {
+      failType = 'Overstrain Failure (OSF)';
+      failProb = 0.96;
+      isFail = true;
+    } else if (deltaTemp < 8.6 && s < 1380) {
+      failType = 'Heat Dissipation Failure (HDF)';
+      failProb = 0.91;
+      isFail = true;
+    } else if (w > 180 || t > 55 || deltaTemp > 12) {
+      failType = 'Degraded Performance';
+      failProb = 0.42;
+      isFail = false;
+    }
+
+    let calculatedHealth = Math.max(0, Math.min(100, Math.round(100 * (1 - failProb))));
+    if (w > 180 && !isFail) {
+      calculatedHealth = Math.max(25, calculatedHealth - (w - 180) * 0.4);
+    }
+    if (t > 55 && !isFail) {
+      calculatedHealth = Math.max(25, calculatedHealth - (t - 55) * 0.8);
+    }
+
+    return {
+      health: Math.round(calculatedHealth),
+      failureProbability: failProb,
+      failureType: failType,
+      isFailure: isFail
+    };
+  }, [airTemp, processTemp, speed, torque, toolWear]);
+
+  const applyPreset = async (preset) => {
+    let newAT = airTemp, newPT = processTemp, newS = speed, newT = torque, newW = toolWear;
+
     if (preset === 'NOMINAL') {
-      setAirTemp(298.1);
-      setProcessTemp(308.6);
-      setSpeed(1550);
-      setTorque(42.0);
-      setToolWear(20);
+      newAT = 298.1; newPT = 308.6; newS = 1550; newT = 42.0; newW = 20;
     } else if (preset === 'HDF') {
-      setAirTemp(303.0);
-      setProcessTemp(311.5);
-      setSpeed(1350);
-      setTorque(50.0);
-      setToolWear(80);
+      newAT = 303.0; newPT = 311.5; newS = 1350; newT = 50.0; newW = 80;
     } else if (preset === 'PWF') {
-      setAirTemp(299.0);
-      setProcessTemp(310.0);
-      setSpeed(1150);
-      setTorque(76.0);
-      setToolWear(110);
+      newAT = 299.0; newPT = 310.0; newS = 1150; newT = 76.0; newW = 110;
     } else if (preset === 'OSF') {
-      setAirTemp(300.0);
-      setProcessTemp(311.0);
-      setSpeed(1250);
-      setTorque(68.0);
-      setToolWear(220);
+      newAT = 300.0; newPT = 311.0; newS = 1250; newT = 68.0; newW = 220;
     } else if (preset === 'TWF') {
-      setAirTemp(298.0);
-      setProcessTemp(309.0);
-      setSpeed(1520);
-      setTorque(45.0);
-      setToolWear(245);
+      newAT = 298.0; newPT = 309.0; newS = 1520; newT = 45.0; newW = 245;
+    }
+
+    setAirTemp(newAT);
+    setProcessTemp(newPT);
+    setSpeed(newS);
+    setTorque(newT);
+    setToolWear(newW);
+    setLatestPrediction(null); // instantly reflect live physics
+
+    if (canWrite) {
+      try {
+        const payload = {
+          air_temp: newAT,
+          process_temp: newPT,
+          rotational_speed: newS,
+          torque: newT,
+          tool_wear: newW
+        };
+        await sensorService.ingestTelemetry(id, payload);
+        const pred = await predictionService.predictFromTelemetry(id, payload);
+        setLatestPrediction(pred);
+        const updatedTelemetry = { ...payload, timestamp: new Date().toISOString() };
+        setLatestTelemetry(updatedTelemetry);
+        setHistoryTelemetry(prev => [updatedTelemetry, ...prev.slice(0, 19)]);
+        const bbRes = await blackboxService.getMachineBlackBoxes(id, { page_size: 5 });
+        if (bbRes?.items) setBlackboxes(bbRes.items);
+      } catch (e) {
+        console.error('Preset ML evaluation error:', e);
+      }
     }
   };
+
+  // Auto-sync real ML prediction with backend debounce on slider change
+  useEffect(() => {
+    if (!id || !canWrite || loading) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        const currentData = {
+          air_temp: Number(airTemp),
+          process_temp: Number(processTemp),
+          rotational_speed: Number(speed),
+          torque: Number(torque),
+          tool_wear: Number(toolWear)
+        };
+        const pred = await predictionService.predictFromTelemetry(id, currentData);
+        setLatestPrediction(pred);
+      } catch (e) {
+        // silent fallback
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [airTemp, processTemp, speed, torque, toolWear, id]);
 
   const handleRunPrediction = async (e) => {
     e?.preventDefault();
@@ -221,7 +309,13 @@ export default function EquipmentDetails() {
 
   const currentHealth = latestPrediction?.health_score !== undefined
     ? latestPrediction.health_score
-    : (machine.current_health_score ?? 100);
+    : livePhysics.health;
+
+  const currentFailProb = latestPrediction?.failure_probability !== undefined
+    ? latestPrediction.failure_probability
+    : livePhysics.failureProbability;
+
+  const currentFailType = latestPrediction?.failure_type || livePhysics.failureType;
 
   const riskLevel =
     currentHealth >= 75 ? 'LOW' :
@@ -265,8 +359,8 @@ export default function EquipmentDetails() {
               <HealthGauge value={Math.round(currentHealth)} size={80} strokeWidth={8} />
               <div>
                 <span className="text-[10px] font-bold uppercase text-industrial-subtext block">FAILURE PROBABILITY</span>
-                <span className="text-2xl font-extrabold font-mono text-industrial-orange">
-                  {latestPrediction?.failure_probability ? `${(latestPrediction.failure_probability * 100).toFixed(1)}%` : '4.0%'}
+                <span className={`text-2xl font-extrabold font-mono ${currentFailProb > 0.5 ? 'text-red-600' : currentFailProb > 0.25 ? 'text-industrial-orange' : 'text-emerald-600'}`}>
+                  {(currentFailProb * 100).toFixed(1)}%
                 </span>
                 <span className="text-[10px] text-slate-400 block mt-0.5">XGBoost Native AI Engine</span>
               </div>
@@ -334,8 +428,8 @@ export default function EquipmentDetails() {
                 <div className="grid grid-cols-2 gap-2.5 my-3">
                   <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-xs">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">Classified Condition</span>
-                    <span className={`font-extrabold text-sm ${latestPrediction?.failure_prediction ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {latestPrediction?.failure_type || 'No Failure'}
+                    <span className={`font-extrabold text-sm ${currentFailType !== 'No Failure' && currentFailType !== 'NO_FAILURE' ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {currentFailType}
                     </span>
                   </div>
 

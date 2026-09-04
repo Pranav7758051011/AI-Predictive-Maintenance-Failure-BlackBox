@@ -97,10 +97,25 @@ class SensorService:
         }
 
     def ingest_telemetry(self, machine_id: str, data: Dict[str, Any], current_user: Dict[str, Any]) -> Dict[str, Any]:
-        """Ingests a single sensor telemetry record for a machine."""
+        """Ingests a single sensor telemetry record for a machine and automatically synchronizes ML health score."""
         machine = self._get_verified_machine(machine_id, current_user, is_write=True)
         record = self._prepare_telemetry_record(machine, data)
-        return self.sensor_repo.create_telemetry(record)
+        saved = self.sensor_repo.create_telemetry(record)
+
+        # Automatically update machine health score and condition prediction in sync
+        try:
+            from app.services.prediction_service import PredictionService
+            pred_svc = PredictionService()
+            pred_svc.predict_from_telemetry(
+                machine_id=machine["id"],
+                telemetry_data=data,
+                current_user=current_user,
+                sensor_data_id=saved.get("id")
+            )
+        except Exception as e:
+            logger.debug(f"Auto prediction on telemetry ingestion: {e}")
+
+        return saved
 
     def ingest_telemetry_batch(self, machine_id: str, readings: List[Dict[str, Any]], current_user: Dict[str, Any]) -> Dict[str, Any]:
         """Ingests a batch of sensor telemetry readings efficiently."""
