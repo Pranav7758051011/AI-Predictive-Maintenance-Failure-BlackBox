@@ -48,7 +48,7 @@ class MachineService:
         return machine
 
     def create_machine(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Creates a new machine in the fleet after verifying serial number uniqueness."""
+        """Creates a new machine in the fleet after verifying serial number uniqueness and seeds baseline telemetry."""
         serial_number = data["serial_number"].strip().upper()
         
         if self.machine_repo.is_serial_number_registered(serial_number):
@@ -84,26 +84,48 @@ class MachineService:
         }
 
         created = self.machine_repo.insert_one(machine_doc)
+
+        # Seed initial baseline normal telemetry records if requested
+        if data.get("seed_baseline", False):
+            try:
+                from datetime import datetime, timezone, timedelta
+                from app.repositories.sensor_repository import SensorRepository
+                sensor_repo = SensorRepository()
+                now = datetime.now(timezone.utc)
+                samples = []
+                for i in range(10, 0, -1):
+                    sample_time = now - timedelta(minutes=i * 2)
+                    p_temp = round(308.0 + (i % 3) * 0.3, 2)
+                    a_temp = round(298.0 + (i % 2) * 0.2, 2)
+                    samples.append({
+                        "machine_id": to_object_id(created["id"]),
+                        "air_temp": a_temp,
+                        "process_temp": p_temp,
+                        "rotational_speed": float(1540 + (i % 5) * 10),
+                        "torque": round(41.5 + (i % 4) * 0.5, 2),
+                        "tool_wear": float(15 + i),
+                        "product_type": machine_doc["product_type"],
+                        "temperature_difference": round(p_temp - a_temp, 2),
+                        "power": round((42.0 * 1550 * 2 * 3.14159) / 60.0, 2),
+                        "timestamp": sample_time
+                    })
+                sensor_repo.create_telemetry_batch(samples)
+            except Exception:
+                pass
+
         return self._hydrate_machine(created)
 
-    def get_machine(self, machine_id: str, current_user: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Retrieves machine by ID with permission checks.
-        If current_user is ENGINEER and machine has an assigned engineer that differs,
-        access is restricted.
-        """
+    def get_machine(self, machine_id: str, current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Retrieves machine by ID with permission checks."""
         machine = self.machine_repo.find_by_id(machine_id)
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
 
-        # Check engineer assignment permissions if authenticated as Engineer
         if current_user:
             user_role = current_user.get("role")
             user_id = str(current_user.get("id"))
-            
             if user_role == UserRole.ENGINEER:
                 assigned_id = machine.get("assigned_engineer_id")
-                # If machine is assigned to someone else, reject
                 if assigned_id and str(assigned_id) != user_id:
                     raise ForbiddenError(
                         "Access forbidden: You are only authorized to view machines assigned to you.",
@@ -122,18 +144,13 @@ class MachineService:
         search_query = query_params.get("search")
 
         mongo_filter: Dict[str, Any] = {}
+        user_role = current_user.get("role") if current_user else None
 
-        # Role-based scoping for Engineers
-        if current_user:
-            user_role = current_user.get("role")
-            user_id = str(current_user.get("id"))
-            
-            if user_role == UserRole.ENGINEER:
-                # Engineers only see machines assigned to them or unassigned machines
-                mongo_filter["$or"] = [
-                    {"assigned_engineer_id": to_object_id(user_id)},
-                    {"assigned_engineer_id": None}
-                ]
+        if current_user and user_role == UserRole.ENGINEER:
+            mongo_filter["$or"] = [
+                {"assigned_engineer_id": to_object_id(current_user.get("id"))},
+                {"assigned_engineer_id": None}
+            ]
 
         if status_filter and status_filter.upper() != "ALL":
             mongo_filter["status"] = status_filter.upper()

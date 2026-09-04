@@ -30,7 +30,7 @@ class BlackBoxService:
         self.sensor_repo = sensor_repo or SensorRepository()
         self.prediction_repo = prediction_repo or PredictionRepository()
 
-    def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Optional[Dict[str, Any]], is_write: bool = False) -> Dict[str, Any]:
+    def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Optional[Dict[str, Any]] = None, is_write: bool = False) -> Dict[str, Any]:
         """Verifies machine exists and validates role permissions."""
         machine = self.machine_repo.find_by_id(machine_id)
         if not machine:
@@ -41,8 +41,8 @@ class BlackBoxService:
             user_id = str(current_user.get("id"))
 
             if is_write:
-                if user_role == UserRole.VIEWER:
-                    raise ForbiddenError("Viewers have read-only access and cannot generate or modify Black Boxes.")
+                if user_role == UserRole.VIEWER or user_role == UserRole.CLIENT:
+                    raise ForbiddenError("Viewers and clients have read-only access and cannot generate or modify Black Boxes.")
                 if user_role == UserRole.ENGINEER:
                     assigned_id = machine.get("assigned_engineer_id")
                     if assigned_id and str(assigned_id) != user_id:
@@ -58,8 +58,87 @@ class BlackBoxService:
                             "You are only authorized to view Black Boxes for machines assigned to you.",
                             error_code="MACHINE_ACCESS_DENIED"
                         )
+        elif is_write:
+            raise ForbiddenError("Authentication required to modify Black Boxes.")
 
         return machine
+
+    def simulate_failure_blackbox(self, machine_id: Optional[str] = None, current_user: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Simulates an authentic failure incident with 24-hour telemetry degradation and seals a Black Box.
+        """
+        if not machine_id:
+            all_machines = self.machine_repo.find_all(limit=1)
+            if all_machines:
+                machine = all_machines[0]
+            else:
+                # Create a demo machine if none exists
+                machine = self.machine_repo.insert_one({
+                    "serial_number": f"SIM-CNC-{int(datetime.now().timestamp()) % 1000:03d}",
+                    "name": "Simulated 5-Axis CNC Mill",
+                    "product_type": "M",
+                    "location": "Bay 3 (Simulation Sector)",
+                    "status": MachineStatus.HEALTHY,
+                    "current_health_score": 100.0,
+                    "current_rul_hours": 350.0
+                })
+        else:
+            machine = self._get_verified_machine(machine_id, current_user, is_write=False)
+
+        now = datetime.now(timezone.utc)
+        samples = []
+        for i in range(12, 0, -1):
+            sample_time = now - timedelta(minutes=i * 5)
+            # Progressively degrade values towards failure
+            progress = (12 - i) / 12.0
+            p_temp = round(308.0 + progress * 7.5, 2)       # Rises from 308K to ~315.5K (Heat Dissipation Failure)
+            a_temp = round(298.0 + (i % 2) * 0.4, 2)
+            rot_spd = round(1550.0 - progress * 250.0, 1)   # Drops from 1550 to ~1300 RPM
+            trq = round(42.0 + progress * 24.0, 2)          # Increases from 42 to 66 Nm
+            tool_w = round(80.0 + progress * 145.0, 1)      # Increases to 225 min (Tool Wear limit)
+
+            samples.append({
+                "machine_id": to_object_id(machine["id"]),
+                "air_temp": a_temp,
+                "process_temp": p_temp,
+                "rotational_speed": rot_spd,
+                "torque": trq,
+                "tool_wear": tool_w,
+                "product_type": machine.get("product_type", "M"),
+                "temperature_difference": round(p_temp - a_temp, 2),
+                "power": round((trq * rot_spd * 2.0 * 3.14159) / 60.0, 2),
+                "timestamp": sample_time
+            })
+
+        self.sensor_repo.create_telemetry_batch(samples)
+
+        # Trigger ML inference on the final failure reading
+        from app.services.ml_service import MLService
+        ml_service = MLService()
+        failure_sample = samples[-1]
+        inference = ml_service.predict(failure_sample)
+        health_score = ml_service.calculate_health_score(inference["failure_probability"], telemetry=failure_sample)
+
+        pred_doc = {
+            "machine_id": to_object_id(machine["id"]),
+            "failure_probability": float(max(0.85, inference["failure_probability"])),
+            "failure_prediction": True,
+            "failure_type": inference.get("failure_type") if inference.get("failure_type") != "None" else "Heat Dissipation Failure (HDF)",
+            "health_score": float(min(22.0, health_score)),
+            "confidence": 0.94,
+            "model_version": inference.get("model_version", "xgboost-failure-v1.0"),
+            "timestamp": now
+        }
+        saved_pred = self.prediction_repo.create_prediction(pred_doc)
+
+        # Generate Black Box snapshot
+        blackbox = self.generate_blackbox_for_prediction(
+            prediction_doc_or_id=saved_pred,
+            current_user=current_user,
+            is_auto=False
+        )
+
+        return blackbox
 
     def generate_blackbox_for_prediction(
         self,

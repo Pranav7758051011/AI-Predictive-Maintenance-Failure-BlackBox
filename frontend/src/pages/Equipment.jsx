@@ -51,7 +51,8 @@ export default function Equipment() {
         serial_number: newSerial.trim().toUpperCase(),
         name: newName.trim(),
         product_type: newType,
-        location: newLocation.trim() || 'Main Plant Bay'
+        location: newLocation.trim() || 'Main Plant Bay',
+        seed_baseline: true
       });
 
       setShowAddModal(false);
@@ -128,18 +129,12 @@ export default function Equipment() {
                 ))}
               </div>
 
-              {canWrite ? (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-extrabold transition shadow-md hover:shadow-glow-orange"
-                >
-                  <FiPlus className="text-base" /> Add Machine
-                </button>
-              ) : (
-                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-xs font-bold border border-slate-300">
-                  Client View (Read Only)
-                </span>
-              )}
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-extrabold transition shadow-md hover:shadow-glow-orange cursor-pointer"
+              >
+                <FiPlus className="text-base" /> Add Machine
+              </button>
 
               <button
                 onClick={loadMachines}
@@ -163,10 +158,16 @@ export default function Equipment() {
               <span>{error}</span>
             </div>
           ) : filteredMachines.length === 0 ? (
-            <div className="industrial-card p-12 text-center text-industrial-subtext space-y-2">
+            <div className="industrial-card p-12 text-center text-industrial-subtext space-y-3">
               <FiFilter className="text-3xl mx-auto text-industrial-subtext/50" />
               <h3 className="text-base font-bold text-industrial-text">No matching equipment found</h3>
-              <p className="text-xs">Try adjusting your search terms or filter settings.</p>
+              <p className="text-xs">Get started by registering a new machine into the fleet catalog.</p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-steel-blue text-white text-xs font-bold shadow hover:bg-steel-blue-dark transition mx-auto"
+              >
+                <FiPlus /> Register First Machine
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -186,7 +187,7 @@ export default function Equipment() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-extrabold text-industrial-text flex items-center gap-2">
                 <FiBox className="text-industrial-orange" />
-                Register New Equipment
+                Register New Industrial Equipment
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -194,6 +195,32 @@ export default function Equipment() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Quick Preset Fill Buttons */}
+            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div className="text-[10px] font-bold uppercase text-slate-500 mb-1.5">Quick Fill Template:</div>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { serial: `CNC-${Math.floor(100 + Math.random() * 900)}`, name: '5-Axis CNC Milling Station', type: 'M', loc: 'Bay 3, Sector B' },
+                  { serial: `LATHE-${Math.floor(100 + Math.random() * 900)}`, name: 'Precision CNC Lathe Center', type: 'H', loc: 'Bay 1, Sector A' },
+                  { serial: `ROBOT-${Math.floor(100 + Math.random() * 900)}`, name: 'Hydraulic Press & Robotic Cell', type: 'L', loc: 'Assembly Sector C' }
+                ].map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setNewSerial(preset.serial);
+                      setNewName(preset.name);
+                      setNewType(preset.type);
+                      setNewLocation(preset.loc);
+                    }}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700 transition"
+                  >
+                    + {preset.name.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {modalError && (
@@ -272,7 +299,7 @@ export default function Equipment() {
                 <button
                   type="submit"
                   disabled={modalLoading}
-                  className="px-4 py-2 bg-steel-blue hover:bg-steel-blue-dark text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-glow-blue disabled:opacity-50"
+                  className="px-4 py-2 bg-steel-blue hover:bg-steel-blue-dark text-white text-xs font-bold rounded-lg shadow-sm hover:shadow-glow-blue disabled:opacity-50 cursor-pointer"
                 >
                   {modalLoading ? 'Creating...' : 'Register Asset'}
                 </button>

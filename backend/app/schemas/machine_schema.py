@@ -47,6 +47,9 @@ class MachineCreateRequestSchema(Schema):
         allow_none=True,
         load_default=None
     )
+    seed_baseline = fields.Boolean(
+        load_default=False
+    )
     specifications = fields.Nested(
         MachineSpecificationsSchema,
         load_default=lambda: {

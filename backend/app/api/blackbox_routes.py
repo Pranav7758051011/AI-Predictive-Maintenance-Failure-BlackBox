@@ -73,6 +73,45 @@ def generate_blackbox():
         status_code=201
     )
 
+@blackbox_bp.route("/api/blackboxes/simulate", methods=["POST"])
+@jwt_required(optional=True)
+def simulate_blackbox():
+    """
+    Simulate Failure Incident & Generate Black Box
+    ---
+    tags:
+      - Black Box
+    summary: Simulates progressive telemetry degradation, executes ML prediction, and seals a 24h Failure Black Box
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              machine_id:
+                type: string
+    responses:
+      201:
+        description: Failure Black Box snapshot created
+    """
+    current_user = get_current_user(optional=True)
+    payload = request.get_json() or {}
+    machine_id = payload.get("machine_id")
+
+    blackbox = blackbox_service.simulate_failure_blackbox(
+        machine_id=machine_id,
+        current_user=current_user
+    )
+
+    return success_response(
+        data=bb_res_schema.dump(blackbox),
+        message=f"Failure Black Box incident '{blackbox['blackbox_code']}' simulated and sealed successfully.",
+        status_code=201
+    )
+
 @blackbox_bp.route("/api/blackboxes", methods=["GET"])
 @jwt_required(optional=True)
 def list_blackboxes():

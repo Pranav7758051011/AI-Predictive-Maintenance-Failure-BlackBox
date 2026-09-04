@@ -25,6 +25,8 @@ export default function BlackBoxes() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [simulating, setSimulating] = useState(false);
+  const [simSuccess, setSimSuccess] = useState('');
 
   // Filters
   const [selectedMachine, setSelectedMachine] = useState('');
@@ -57,6 +59,22 @@ export default function BlackBoxes() {
     loadData();
   }, [selectedMachine, selectedFailureType, selectedStatus]);
 
+  const handleSimulateFailure = async () => {
+    setSimulating(true);
+    setError(null);
+    setSimSuccess('');
+    try {
+      const targetMachineId = selectedMachine || (machines.length > 0 ? machines[0].id : null);
+      const res = await blackboxService.simulateFailureBlackBox(targetMachineId);
+      setSimSuccess(`Failure Black Box '${res.blackbox_code}' successfully generated and sealed with 24h telemetry window.`);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Simulation failed.');
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-canvas text-industrial-text flex flex-col">
       <Navbar />
@@ -85,14 +103,33 @@ export default function BlackBoxes() {
               </p>
             </div>
 
-            <button
-              onClick={loadData}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition self-start md:self-auto border border-slate-300"
-            >
-              <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-              <span>Refresh Records</span>
-            </button>
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={handleSimulateFailure}
+                disabled={simulating}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold transition shadow-md hover:shadow-glow-orange cursor-pointer disabled:opacity-50"
+                title="Generate an authentic Failure Black Box incident with degraded telemetry"
+              >
+                <FiPlay className={simulating ? 'animate-spin' : ''} />
+                <span>{simulating ? 'Simulating Incident...' : '⚡ Simulate Failure & Generate Black Box'}</span>
+              </button>
+
+              <button
+                onClick={loadData}
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-300"
+              >
+                <FiRefreshCw className={loading ? 'animate-spin' : ''} />
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
+
+          {simSuccess && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2.5 shadow-sm">
+              <FiCheckCircle className="text-lg text-emerald-600 shrink-0" />
+              <span className="font-semibold">{simSuccess}</span>
+            </div>
+          )}
 
           {/* Filter Bar */}
           <div className="bg-white p-4 rounded-xl border border-industrial-border shadow-sm flex flex-wrap items-center gap-3">
@@ -172,8 +209,16 @@ export default function BlackBoxes() {
               </div>
               <h3 className="text-lg font-bold text-industrial-text">No Failure Black Boxes Recorded</h3>
               <p className="text-xs text-industrial-subtext max-w-md mx-auto">
-                No failure incidents match the selected criteria. When an ML failure prediction occurs on telemetry ingestion, the system automatically freezes the 24-hour window into an immutable Black Box snapshot.
+                No failure incidents match the selected criteria. You can test and inspect the Failure Black Box system now by simulating an authentic failure incident.
               </p>
+              <button
+                onClick={handleSimulateFailure}
+                disabled={simulating}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-industrial-orange hover:bg-industrial-orange-hover text-white text-xs font-bold transition shadow-md hover:shadow-glow-orange mx-auto cursor-pointer disabled:opacity-50"
+              >
+                <FiPlay className={simulating ? 'animate-spin' : ''} />
+                <span>{simulating ? 'Simulating Incident...' : '⚡ Generate Test Failure Black Box'}</span>
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

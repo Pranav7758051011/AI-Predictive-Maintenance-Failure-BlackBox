@@ -12,6 +12,16 @@ export const blackboxService = {
   },
 
   /**
+   * 1-Click failure simulation and 24-hour Failure Black Box generation.
+   */
+  async simulateFailureBlackBox(machineId = null) {
+    return await apiRequest('/api/blackboxes/simulate', {
+      method: 'POST',
+      body: machineId ? { machine_id: machineId } : {}
+    });
+  },
+
+  /**
    * Lists paginated Failure Black Box incident records with filters.
    */
   async listBlackBoxes(params = {}) {

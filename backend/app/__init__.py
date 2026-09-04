@@ -229,7 +229,15 @@ def seed_initial_data(app: Flask):
                     "health_score_at_failure": 0.0,
                     "trigger_prediction_id": res_pred.inserted_id
                 },
-                "telemetry_window": [
+                "telemetry_window": {
+                    "requested_duration_hours": 24,
+                    "available_duration_hours": 12.0,
+                    "start_time": (now - timedelta(hours=12)).isoformat(),
+                    "end_time": now.isoformat(),
+                    "telemetry_samples_count": 12,
+                    "predictions_count": 1
+                },
+                "telemetry_history": [
                     {
                         "timestamp": (now - timedelta(hours=i)).isoformat(),
                         "air_temp": 298.0,

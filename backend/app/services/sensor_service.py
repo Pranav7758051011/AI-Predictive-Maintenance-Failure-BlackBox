@@ -24,33 +24,31 @@ class SensorService:
         if not machine:
             raise NotFoundError(f"Machine with ID '{machine_id}' not found.", error_code="MACHINE_NOT_FOUND")
 
-        user_role = current_user.get("role") if current_user else None
-        user_id = str(current_user.get("id")) if current_user else None
+        if current_user:
+            user_role = current_user.get("role")
+            user_id = str(current_user.get("id"))
 
-        # Write permission checks (Telemetry Ingestion)
-        if is_write:
-            if not current_user:
-                raise ForbiddenError("Authentication required to ingest telemetry.")
-            if user_role == UserRole.VIEWER:
-                raise ForbiddenError("Viewers have read-only access and cannot ingest sensor telemetry.")
-            if user_role == UserRole.ENGINEER:
-                assigned_id = machine.get("assigned_engineer_id")
-                # If machine is assigned to a specific engineer, verify assignment
-                if assigned_id and str(assigned_id) != user_id:
-                    raise ForbiddenError(
-                        "You are only authorized to ingest telemetry for machines assigned to you.",
-                        error_code="MACHINE_ACCESS_DENIED"
-                    )
-
-        # Read permission checks (Telemetry Monitoring & History)
-        else:
-            if user_role == UserRole.ENGINEER:
-                assigned_id = machine.get("assigned_engineer_id")
-                if assigned_id and str(assigned_id) != user_id:
-                    raise ForbiddenError(
-                        "You are only authorized to view telemetry for machines assigned to you.",
-                        error_code="MACHINE_ACCESS_DENIED"
-                    )
+            # Write permission checks (Telemetry Ingestion)
+            if is_write:
+                if user_role == UserRole.VIEWER or user_role == UserRole.CLIENT:
+                    raise ForbiddenError("Viewers and clients have read-only access and cannot ingest sensor telemetry.")
+                if user_role == UserRole.ENGINEER:
+                    assigned_id = machine.get("assigned_engineer_id")
+                    if assigned_id and str(assigned_id) != user_id:
+                        raise ForbiddenError(
+                            "You are only authorized to ingest telemetry for machines assigned to you.",
+                            error_code="MACHINE_ACCESS_DENIED"
+                        )
+            else:
+                if user_role == UserRole.ENGINEER:
+                    assigned_id = machine.get("assigned_engineer_id")
+                    if assigned_id and str(assigned_id) != user_id:
+                        raise ForbiddenError(
+                            "You are only authorized to view telemetry for machines assigned to you.",
+                            error_code="MACHINE_ACCESS_DENIED"
+                        )
+        elif is_write:
+            raise ForbiddenError("Authentication required to ingest telemetry.")
 
         return machine
 

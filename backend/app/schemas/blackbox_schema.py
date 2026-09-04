@@ -25,7 +25,7 @@ class BlackBoxResponseSchema(Schema):
     failure_timestamp = fields.Raw(dump_only=True)
     failure_summary = fields.Dict(dump_only=True)
     machine_snapshot = fields.Dict(dump_only=True)
-    telemetry_window = fields.Dict(dump_only=True)
+    telemetry_window = fields.Raw(dump_only=True)
     telemetry_history = fields.List(fields.Dict(), dump_only=True)
     prediction_history = fields.List(fields.Dict(), dump_only=True)
     event_timeline = fields.List(fields.Dict(), dump_only=True)

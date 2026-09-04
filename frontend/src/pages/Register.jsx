@@ -9,7 +9,7 @@ export default function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('CLIENT');
+  const [role, setRole] = useState('ENGINEER');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +46,12 @@ export default function Register() {
     }
   };
 
+  const roleOptions = [
+    { id: 'ADMIN', label: 'Admin', desc: 'Full Control', icon: FiShield },
+    { id: 'ENGINEER', label: 'Engineer', desc: 'Manage Equipment', icon: FiCpu },
+    { id: 'CLIENT', label: 'Client', desc: 'Read-Only View', icon: FiUser }
+  ];
+
   return (
     <div className="min-h-screen bg-canvas flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
@@ -56,7 +62,7 @@ export default function Register() {
           Create Plant Account
         </h2>
         <p className="mt-1.5 text-xs text-industrial-subtext">
-          Register with Role-Based Access Control (Admin, Engineer, Client)
+          Industrial Predictive Maintenance & Failure Black Box Console
         </p>
       </div>
 
@@ -70,6 +76,35 @@ export default function Register() {
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {/* Interactive Role Selector */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
+                Select Your Role
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {roleOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  const isSelected = role === opt.id;
+                  return (
+                    <button
+                      type="button"
+                      key={opt.id}
+                      onClick={() => setRole(opt.id)}
+                      className={`p-2.5 rounded-lg border text-center transition flex flex-col items-center justify-center gap-1 ${
+                        isSelected
+                          ? 'bg-steel-blue text-white border-steel-blue-dark shadow-sm'
+                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Icon className={isSelected ? 'text-industrial-orange' : 'text-slate-400'} />
+                      <span className="text-xs font-bold">{opt.label}</span>
+                      <span className="text-[9px] opacity-80">{opt.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
                 Full Name
@@ -115,37 +150,10 @@ export default function Register() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min. 8 characters"
+                  placeholder="Min. 6 characters"
                   className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-industrial-border rounded-lg text-sm text-industrial-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-steel-blue focus:bg-white transition"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-industrial-text mb-1.5">
-                Account Role (RBAC)
-              </label>
-              <div className="relative">
-                <FiShield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-industrial-border rounded-lg text-sm text-industrial-text focus:outline-none focus:ring-2 focus:ring-steel-blue focus:bg-white transition"
-                >
-                  <option value="CLIENT">CLIENT (Read-Only Plant Overview)</option>
-                  <option value="ENGINEER">ENGINEER (Manage & Inspect Equipment)</option>
-                  <option value="ADMIN">ADMIN (Full Control — Max 2 Active Admins)</option>
-                </select>
-              </div>
-
-              {role === 'ADMIN' && (
-                <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded text-[11px] text-amber-800 flex items-start gap-1.5">
-                  <FiInfo className="text-sm shrink-0 mt-0.5 text-amber-600" />
-                  <span>
-                    <strong>Strict Admin Cap:</strong> Only 2 Admin accounts can exist simultaneously. If 2 Admins are registered, an existing Admin must delete their account before a new one can be registered.
-                  </span>
-                </div>
-              )}
             </div>
 
             <button
