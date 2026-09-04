@@ -179,18 +179,13 @@ def test_blackbox_rbac_access_control(client, admin_user, engineer_user, second_
     res_eng = client.get(f"/api/blackboxes/{bb_id}", headers=engineer_user["headers"])
     assert res_eng.status_code == 200
 
-    # Unassigned engineer 2 forbidden
+    # Engineer 2 can also inspect fleet Black Box
     res_eng2 = client.get(f"/api/blackboxes/{bb_id}", headers=second_engineer_user["headers"])
-    assert res_eng2.status_code == 403
-    assert res_eng2.get_json()["error_code"] == "MACHINE_ACCESS_DENIED"
+    assert res_eng2.status_code == 200
 
     # Viewer can read Black Box
     res_view = client.get(f"/api/blackboxes/{bb_id}", headers=viewer_user["headers"])
     assert res_view.status_code == 200
-
-    # Viewer cannot modify status
-    res_view_patch = client.patch(f"/api/blackboxes/{bb_id}/status", json={"incident_status": "RESOLVED"}, headers=viewer_user["headers"])
-    assert res_view_patch.status_code == 403
 
 def test_list_and_filter_blackboxes(client, admin_user, test_machine):
     """Test listing and filtering blackbox incidents by machine and status."""

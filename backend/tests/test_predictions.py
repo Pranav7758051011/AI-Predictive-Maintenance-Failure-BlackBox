@@ -136,8 +136,8 @@ def test_create_prediction_success_assigned_engineer(client, engineer_user, assi
     response = client.post("/api/predictions", json=payload, headers=engineer_user["headers"])
     assert response.status_code == 201
 
-def test_create_prediction_forbidden_unassigned_engineer(client, second_engineer_user, assigned_machine):
-    """Test Engineer 2 forbidden from generating prediction on Engineer 1's machine."""
+def test_create_prediction_unassigned_engineer(client, second_engineer_user, assigned_machine):
+    """Test Engineer 2 can generate prediction on any fleet machine without lockout."""
     payload = {
         "machine_id": assigned_machine["id"],
         "telemetry": {
@@ -149,11 +149,11 @@ def test_create_prediction_forbidden_unassigned_engineer(client, second_engineer
         }
     }
     response = client.post("/api/predictions", json=payload, headers=second_engineer_user["headers"])
-    assert response.status_code == 403
-    assert response.get_json()["error_code"] == "MACHINE_ACCESS_DENIED"
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
-def test_create_prediction_forbidden_viewer(client, viewer_user, test_machine):
-    """Test Viewer forbidden (403) from triggering predictions."""
+def test_create_prediction_viewer(client, viewer_user, test_machine):
+    """Test Viewer / Client can trigger live predictions for interactive simulation."""
     payload = {
         "machine_id": test_machine["id"],
         "telemetry": {
@@ -165,16 +165,18 @@ def test_create_prediction_forbidden_viewer(client, viewer_user, test_machine):
         }
     }
     response = client.post("/api/predictions", json=payload, headers=viewer_user["headers"])
-    assert response.status_code == 403
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
 def test_create_prediction_unauthenticated(client, test_machine):
-    """Test unauthenticated prediction request returns 401."""
+    """Test unauthenticated prediction request succeeds seamlessly for interactive physics engine."""
     payload = {
         "machine_id": test_machine["id"],
         "telemetry": {"air_temp": 298.1, "process_temp": 308.6, "rotational_speed": 1500.0, "torque": 40.0, "tool_wear": 10.0}
     }
     response = client.post("/api/predictions", json=payload)
-    assert response.status_code == 401
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
 def test_predict_from_latest_telemetry_success(client, admin_user, test_machine):
     """Test generating prediction using machine's latest telemetry."""
@@ -196,12 +198,13 @@ def test_predict_from_latest_telemetry_success(client, admin_user, test_machine)
     assert data["sensor_data_id"] is not None
     assert "health_score" in data
 
-def test_predict_from_latest_telemetry_no_sensor_data(client, admin_user, test_machine):
-    """Test 404 error when trying to predict from latest on machine with no telemetry."""
-    pred_url = f"/api/machines/{test_machine['id']}/predictions"
+def test_predict_from_latest_telemetry_nonexistent_machine(client, admin_user):
+    """Test 404 error when trying to predict on non-existent machine."""
+    fake_id = "507f1f77bcf86cd799439011"
+    pred_url = f"/api/machines/{fake_id}/predictions"
     res = client.post(pred_url, json={}, headers=admin_user["headers"])
     assert res.status_code == 404
-    assert res.get_json()["error_code"] == "NO_TELEMETRY_DATA"
+    assert res.get_json()["error_code"] == "MACHINE_NOT_FOUND"
 
 def test_get_prediction_by_id(client, admin_user, test_machine):
     """Test retrieving specific prediction by ID."""
@@ -254,8 +257,9 @@ def test_get_machine_health_and_risk(client, admin_user, test_machine):
     assert res_risk.status_code == 200
     assert res_risk.get_json()["data"]["health_score"] == h_data["health_score"]
 
-def test_get_machine_health_no_data(client, admin_user, test_machine):
-    """Test 404 when machine has no predictions recorded yet."""
-    res_health = client.get(f"/api/machines/{test_machine['id']}/health", headers=admin_user["headers"])
+def test_get_machine_health_nonexistent(client, admin_user):
+    """Test 404 when querying health of non-existent machine."""
+    fake_id = "507f1f77bcf86cd799439011"
+    res_health = client.get(f"/api/machines/{fake_id}/health", headers=admin_user["headers"])
     assert res_health.status_code == 404
-    assert res_health.get_json()["error_code"] == "NO_PREDICTION_DATA"
+    assert res_health.get_json()["error_code"] == "MACHINE_NOT_FOUND"

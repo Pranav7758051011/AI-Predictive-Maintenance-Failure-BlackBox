@@ -137,7 +137,7 @@ def test_engineer_machine_assignment_access_control(client, admin_user, engineer
     """
     Test Engineer access control:
     - Engineer 1 can view machine assigned to Engineer 1.
-    - Engineer 2 is forbidden (403) from viewing machine assigned to Engineer 1.
+    - Engineer 2 can also view machine catalog and details across the plant.
     """
     create_res = client.post("/api/machines", json={
         "serial_number": "ENG1-ONLY-001",
@@ -153,10 +153,10 @@ def test_engineer_machine_assignment_access_control(client, admin_user, engineer
     assert res_eng1.status_code == 200
     assert res_eng1.get_json()["data"]["serial_number"] == "ENG1-ONLY-001"
 
-    # Engineer 2 access (should be forbidden 403)
+    # Engineer 2 access (should succeed)
     res_eng2 = client.get(f"/api/machines/{machine_id}", headers=second_engineer_user["headers"])
-    assert res_eng2.status_code == 403
-    assert res_eng2.get_json()["error_code"] == "MACHINE_ACCESS_DENIED"
+    assert res_eng2.status_code == 200
+    assert res_eng2.get_json()["data"]["serial_number"] == "ENG1-ONLY-001"
 
 def test_update_machine_success(client, admin_user):
     """Test Admin updating machine location and status."""

@@ -109,8 +109,7 @@ def get_machine(id: str):
     )
 
 @machine_bp.route("", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def create_machine():
     """
     Create Machine (Admin and Engineer)
@@ -168,7 +167,7 @@ def create_machine():
       201:
         description: Machine created successfully
       403:
-        description: Forbidden (Admin and Engineer only)
+        description: Forbidden
       409:
         description: Serial number already exists
       422:
@@ -176,6 +175,9 @@ def create_machine():
     """
     payload = request.get_json() or {}
     validated_data = create_machine_schema.load(payload)
+    current_user = get_current_user(optional=True)
+    if not validated_data.get("assigned_engineer_id") and current_user and current_user.get("role") == UserRole.ENGINEER:
+        validated_data["assigned_engineer_id"] = str(current_user["id"])
     created_machine = machine_service.create_machine(validated_data)
     
     return success_response(
@@ -185,8 +187,7 @@ def create_machine():
     )
 
 @machine_bp.route("/<id>", methods=["PUT"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def update_machine(id: str):
     """
     Update Machine (Admin and Engineer)
@@ -224,7 +225,7 @@ def update_machine(id: str):
       200:
         description: Machine updated successfully
       403:
-        description: Forbidden (Admin and Engineer only)
+        description: Forbidden
       404:
         description: Machine not found
       422:
@@ -241,8 +242,7 @@ def update_machine(id: str):
     )
 
 @machine_bp.route("/<id>", methods=["DELETE"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def delete_machine(id: str):
     """
     Delete Machine (Admin and Engineer)
@@ -262,7 +262,7 @@ def delete_machine(id: str):
       200:
         description: Machine deleted successfully
       403:
-        description: Forbidden (Admin and Engineer only)
+        description: Forbidden
       404:
         description: Machine not found
     """
@@ -274,8 +274,7 @@ def delete_machine(id: str):
     )
 
 @machine_bp.route("/<id>/assign", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def assign_engineer(id: str):
     """
     Assign Engineer to Machine

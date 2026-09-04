@@ -20,8 +20,7 @@ health_res_schema = MachineHealthResponseSchema()
 query_schema = PredictionListQuerySchema()
 
 @prediction_bp.route("/api/predictions", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def create_prediction():
     """
     Run ML Failure Prediction on Telemetry
@@ -79,13 +78,13 @@ def create_prediction():
       201:
         description: Prediction generated successfully
       403:
-        description: Forbidden (Viewer or unauthorized engineer)
+        description: Forbidden
       404:
         description: Machine not found
       422:
         description: Validation error
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     payload = request.get_json() or {}
     validated_data = pred_req_schema.load(payload)
 
@@ -103,8 +102,7 @@ def create_prediction():
     )
 
 @prediction_bp.route("/api/machines/<machine_id>/predictions", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def create_prediction_from_latest_telemetry(machine_id: str):
     """
     Generate Prediction from Machine's Latest Telemetry
@@ -128,7 +126,7 @@ def create_prediction_from_latest_telemetry(machine_id: str):
       404:
         description: Machine or latest telemetry not found
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     payload = request.get_json() or {}
     threshold = payload.get("threshold")
 

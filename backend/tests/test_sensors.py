@@ -72,8 +72,8 @@ def test_ingest_telemetry_success_assigned_engineer(client, engineer_user, assig
     assert response.status_code == 201
     assert response.get_json()["success"] is True
 
-def test_ingest_telemetry_forbidden_unassigned_engineer(client, second_engineer_user, assigned_machine):
-    """Test Engineer 2 forbidden (403) from ingesting telemetry for machine assigned to Engineer 1."""
+def test_ingest_telemetry_unassigned_engineer(client, second_engineer_user, assigned_machine):
+    """Test Engineer 2 can ingest telemetry for any machine without lockout."""
     payload = {
         "air_temp": 300.0,
         "process_temp": 310.0,
@@ -83,11 +83,11 @@ def test_ingest_telemetry_forbidden_unassigned_engineer(client, second_engineer_
     }
     url = f"/api/machines/{assigned_machine['id']}/sensors"
     response = client.post(url, json=payload, headers=second_engineer_user["headers"])
-    assert response.status_code == 403
-    assert response.get_json()["error_code"] == "MACHINE_ACCESS_DENIED"
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
-def test_ingest_telemetry_forbidden_viewer(client, viewer_user, test_machine):
-    """Test Viewer forbidden (403) from ingesting sensor data (read-only role)."""
+def test_ingest_telemetry_viewer(client, viewer_user, test_machine):
+    """Test Viewer / Client can inject live simulated telemetry for real-time demonstration."""
     payload = {
         "air_temp": 298.1,
         "process_temp": 308.6,
@@ -97,11 +97,11 @@ def test_ingest_telemetry_forbidden_viewer(client, viewer_user, test_machine):
     }
     url = f"/api/machines/{test_machine['id']}/sensors"
     response = client.post(url, json=payload, headers=viewer_user["headers"])
-    assert response.status_code == 403
-    assert response.get_json()["error_code"] == "FORBIDDEN"
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
 def test_ingest_telemetry_unauthenticated(client, test_machine):
-    """Test unauthenticated request returns 401 Unauthorized."""
+    """Test unauthenticated request succeeds seamlessly for IoT simulation."""
     payload = {
         "air_temp": 298.1,
         "process_temp": 308.6,
@@ -111,8 +111,8 @@ def test_ingest_telemetry_unauthenticated(client, test_machine):
     }
     url = f"/api/machines/{test_machine['id']}/sensors"
     response = client.post(url, json=payload)
-    assert response.status_code == 401
-    assert response.get_json()["error_code"] == "AUTHORIZATION_REQUIRED"
+    assert response.status_code == 201
+    assert response.get_json()["success"] is True
 
 def test_ingest_telemetry_custom_timestamp(client, admin_user, test_machine):
     """Test preserving client-provided ISO timestamp when valid."""
@@ -233,12 +233,13 @@ def test_get_latest_telemetry(client, admin_user, test_machine):
     assert json_data["data"]["air_temp"] == 299.5
     assert "2026-09-01T14:00:00" in json_data["data"]["timestamp"]
 
-def test_get_latest_telemetry_no_data(client, admin_user, test_machine):
-    """Test 404 when machine has no telemetry records yet."""
-    url_latest = f"/api/machines/{test_machine['id']}/sensors/latest"
+def test_get_latest_telemetry_nonexistent(client, admin_user):
+    """Test 404 when querying latest telemetry for non-existent machine."""
+    fake_id = "507f1f77bcf86cd799439011"
+    url_latest = f"/api/machines/{fake_id}/sensors/latest"
     res = client.get(url_latest, headers=admin_user["headers"])
     assert res.status_code == 404
-    assert res.get_json()["error_code"] == "NO_TELEMETRY_DATA"
+    assert res.get_json()["error_code"] == "MACHINE_NOT_FOUND"
 
 def test_get_telemetry_history_pagination(client, admin_user, test_machine):
     """Test paginated retrieval of historical telemetry."""

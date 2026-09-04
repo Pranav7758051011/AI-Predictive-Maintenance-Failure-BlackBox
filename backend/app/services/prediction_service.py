@@ -23,6 +23,8 @@ class PredictionService:
         self.machine_repo = machine_repo or MachineRepository()
         self.sensor_repo = sensor_repo or SensorRepository()
         self.ml_service = ml_service or MLService()
+        from app.services.sensor_service import SensorService
+        self.sensor_service = SensorService(sensor_repo=self.sensor_repo, machine_repo=self.machine_repo)
 
     def _get_verified_machine(self, machine_id: Union[str, ObjectId], current_user: Optional[Dict[str, Any]] = None, is_write: bool = False) -> Dict[str, Any]:
         """Validates machine existence and access permissions."""

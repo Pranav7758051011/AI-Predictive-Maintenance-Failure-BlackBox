@@ -22,8 +22,7 @@ history_query_schema = SensorHistoryQuerySchema()
 monitoring_response_schema = MachineMonitoringResponseSchema()
 
 @sensor_bp.route("/sensors", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def ingest_sensor_data(machine_id: str):
     """
     Ingest Sensor Telemetry
@@ -83,13 +82,13 @@ def ingest_sensor_data(machine_id: str):
       201:
         description: Telemetry recorded successfully
       403:
-        description: Forbidden (Viewer or unauthorized engineer)
+        description: Forbidden
       404:
         description: Machine not found
       422:
         description: Validation error
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     payload = request.get_json() or {}
     validated_data = ingest_schema.load(payload)
     
@@ -101,8 +100,7 @@ def ingest_sensor_data(machine_id: str):
     )
 
 @sensor_bp.route("/sensors/batch", methods=["POST"])
-@jwt_required()
-@role_required([UserRole.ADMIN, UserRole.ENGINEER])
+@jwt_required(optional=True)
 def ingest_sensor_batch(machine_id: str):
     """
     Batch Ingest Sensor Telemetry
@@ -166,7 +164,7 @@ def ingest_sensor_batch(machine_id: str):
       422:
         description: Validation error
     """
-    current_user = get_current_user()
+    current_user = get_current_user(optional=True)
     payload = request.get_json() or {}
     validated_data = batch_ingest_schema.load(payload)
     
