@@ -1,37 +1,32 @@
-import { apiRequest } from './api';
+/**
+ * INDUSENSE AI - Sensor Telemetry Service Adapter
+ * Routed to Firebase & Realtime Firestore Layer
+ */
+
+import { firebaseSensorService } from '../firebase/sensorService';
 
 export const sensorService = {
-  async getLatestTelemetry(machineId) {
-    return await apiRequest(`/api/machines/${machineId}/sensors/latest`, { method: 'GET' });
+  async ingestTelemetry(machineId, telemetryData) {
+    return await firebaseSensorService.ingestTelemetry(machineId, telemetryData);
   },
 
-  async getMonitoringData(machineId) {
-    return await apiRequest(`/api/machines/${machineId}/monitoring`, { method: 'GET' });
+  async getLatestTelemetry(machineId) {
+    return await firebaseSensorService.getLatestTelemetry(machineId);
   },
 
   async getTelemetryHistory(machineId, params = {}) {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.page_size) query.append('page_size', params.page_size);
-    if (params.start_time) query.append('start_time', params.start_time);
-    if (params.end_time) query.append('end_time', params.end_time);
-
-    const queryString = query.toString();
-    const endpoint = `/api/machines/${machineId}/sensors${queryString ? `?${queryString}` : ''}`;
-    return await apiRequest(endpoint, { method: 'GET' });
+    return await firebaseSensorService.getTelemetryHistory(machineId, params);
   },
 
-  async ingestTelemetry(machineId, telemetryData) {
-    return await apiRequest(`/api/machines/${machineId}/sensors`, {
-      method: 'POST',
-      body: telemetryData
-    });
+  async getMachineMonitoring(machineId, hours = 24) {
+    return await firebaseSensorService.getMachineMonitoring(machineId, hours);
   },
 
-  async ingestBatchTelemetry(machineId, readings) {
-    return await apiRequest(`/api/machines/${machineId}/sensors/batch`, {
-      method: 'POST',
-      body: { readings }
-    });
+  async batchIngestTelemetry(machineId, readings = []) {
+    return await firebaseSensorService.batchIngestTelemetry(machineId, readings);
+  },
+
+  subscribeToTelemetry(machineId, callback) {
+    return firebaseSensorService.subscribeToTelemetry(machineId, callback);
   }
 };

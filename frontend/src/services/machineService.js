@@ -1,47 +1,36 @@
-import { apiRequest } from './api';
+/**
+ * INDUSENSE AI - Machine Fleet Service Adapter
+ * Routed to Firebase & Realtime Firestore Layer
+ */
+
+import { firebaseMachineService } from '../firebase/machineService';
 
 export const machineService = {
-  async getMachines(params = {}) {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.page_size) query.append('page_size', params.page_size);
-    if (params.status) query.append('status', params.status);
-    if (params.product_type) query.append('product_type', params.product_type);
-    if (params.assigned_engineer_id) query.append('assigned_engineer_id', params.assigned_engineer_id);
-
-    const queryString = query.toString();
-    const endpoint = `/api/machines${queryString ? `?${queryString}` : ''}`;
-    return await apiRequest(endpoint, { method: 'GET' });
+  async listMachines(params = {}) {
+    return await firebaseMachineService.listMachines(params);
   },
 
-  async getMachineById(machineId) {
-    return await apiRequest(`/api/machines/${machineId}`, { method: 'GET' });
+  async getMachineById(id) {
+    return await firebaseMachineService.getMachineById(id);
   },
 
   async createMachine(machineData) {
-    return await apiRequest('/api/machines', {
-      method: 'POST',
-      body: machineData
-    });
+    return await firebaseMachineService.createMachine(machineData);
   },
 
-  async updateMachine(machineId, machineData) {
-    return await apiRequest(`/api/machines/${machineId}`, {
-      method: 'PUT',
-      body: machineData
-    });
+  async updateMachine(id, updateData) {
+    return await firebaseMachineService.updateMachine(id, updateData);
   },
 
-  async deleteMachine(machineId) {
-    return await apiRequest(`/api/machines/${machineId}`, {
-      method: 'DELETE'
-    });
+  async deleteMachine(id) {
+    return await firebaseMachineService.deleteMachine(id);
   },
 
   async assignEngineer(machineId, engineerId) {
-    return await apiRequest(`/api/machines/${machineId}/assign`, {
-      method: 'POST',
-      body: { engineer_id: engineerId }
-    });
+    return await firebaseMachineService.assignEngineer(machineId, engineerId);
+  },
+
+  subscribeToFleet(callback) {
+    return firebaseMachineService.subscribeToFleet(callback);
   }
 };

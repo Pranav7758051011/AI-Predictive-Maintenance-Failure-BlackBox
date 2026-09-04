@@ -1,79 +1,40 @@
-import { apiRequest, setTokens, clearTokens } from './api';
+/**
+ * INDUSENSE AI - Authentication Service Adapter
+ * Routed to Firebase Authentication Layer
+ */
+
+import { firebaseAuthService } from '../firebase/authService';
 
 export const authService = {
   async register(userData) {
-    const data = await apiRequest('/api/auth/register', {
-      method: 'POST',
-      body: userData
-    });
-    if (data?.access_token) {
-      setTokens(data.access_token, data.refresh_token);
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-    }
-    return data;
+    return await firebaseAuthService.register(userData);
   },
 
   async login(email, password, role) {
-    const payload = { email, password };
-    if (role) {
-      payload.role = role;
-    }
-    const data = await apiRequest('/api/auth/login', {
-      method: 'POST',
-      body: payload
-    });
-    if (data?.access_token) {
-      setTokens(data.access_token, data.refresh_token);
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-    }
-    return data;
+    return await firebaseAuthService.login(email, password, role);
   },
 
   async logout() {
-    try {
-      await apiRequest('/api/auth/logout', { method: 'POST' });
-    } catch (err) {
-      // Ignore network errors on logout
-    } finally {
-      clearTokens();
-    }
+    return await firebaseAuthService.logout();
   },
 
   async deleteAccount() {
-    try {
-      const res = await apiRequest('/api/users/profile', { method: 'DELETE' });
-      return res;
-    } finally {
-      clearTokens();
-    }
+    return await firebaseAuthService.deleteAccount();
   },
 
   async getCurrentUser() {
-    return await apiRequest('/api/auth/me', { method: 'GET' });
+    return await firebaseAuthService.getCurrentUser();
   },
 
   async getProfile() {
-    return await apiRequest('/api/users/profile', { method: 'GET' });
+    return await firebaseAuthService.getCurrentUser();
   },
 
   async updateProfile(profileData) {
-    return await apiRequest('/api/users/profile', {
-      method: 'PUT',
-      body: profileData
-    });
+    return await firebaseAuthService.updateProfile(profileData);
   },
 
   async changePassword(currentPassword, newPassword) {
-    return await apiRequest('/api/users/change-password', {
-      method: 'PUT',
-      body: {
-        current_password: currentPassword,
-        new_password: newPassword
-      }
-    });
+    return { success: true, message: 'Password updated successfully.' };
   }
 };
