@@ -42,6 +42,7 @@ export default function EquipmentDetails() {
   const [error, setError] = useState(null);
   const [predicting, setPredicting] = useState(false);
   const [predSuccess, setPredSuccess] = useState('');
+  const [predError, setPredError] = useState('');
 
   // Interactive Live Telemetry Injection Form
   const [airTemp, setAirTemp] = useState(298.1);
@@ -62,10 +63,12 @@ export default function EquipmentDetails() {
         blackboxService.getMachineBlackBoxes(id, { page_size: 5 })
       ]);
 
-      if (machRes.status === 'fulfilled') {
+      if (machRes.status === 'fulfilled' && machRes.value) {
         setMachine(machRes.value);
       } else {
-        throw new Error('Machine not found in database.');
+        setMachine(null);
+        setError('Machine not found in database.');
+        return;
       }
 
       if (telRes.status === 'fulfilled' && telRes.value) {
@@ -104,6 +107,7 @@ export default function EquipmentDetails() {
     if (!canWrite) return;
     setPredicting(true);
     setPredSuccess('');
+    setPredError('');
 
     try {
       // 1. Ingest updated telemetry values to Flask
@@ -123,7 +127,7 @@ export default function EquipmentDetails() {
       // Refresh data
       await loadData();
     } catch (err) {
-      setError(err.message || 'Prediction execution failed.');
+      setPredError(err.message || 'Prediction execution failed.');
     } finally {
       setPredicting(false);
     }
@@ -144,7 +148,7 @@ export default function EquipmentDetails() {
     );
   }
 
-  if (error || !machine) {
+  if (!machine) {
     return (
       <div className="min-h-screen bg-canvas text-industrial-text flex flex-col">
         <Navbar />
@@ -239,6 +243,13 @@ export default function EquipmentDetails() {
             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-2">
               <FiCheckCircle />
               <span>{predSuccess}</span>
+            </div>
+          )}
+
+          {predError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-lg text-xs flex items-center gap-2">
+              <FiAlertTriangle className="text-red-600 flex-shrink-0" />
+              <span>{predError}</span>
             </div>
           )}
 
